@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Berhasil — Rusuh Tiket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--red:#EC1C24;--ember:#ff5a2d;--ink:#0a0a0c;--ok:#17a34a;--muted:rgba(255,255,255,.6);--ease:cubic-bezier(.32,.72,0,1)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--ink);color:#fff;min-height:100dvh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  button{font:inherit;cursor:pointer}
+  .aura{position:fixed;inset:-30%;z-index:0;filter:blur(80px);opacity:.38;pointer-events:none;background:radial-gradient(34% 40% at 30% 28%,#17a34a 0,transparent 60%),radial-gradient(34% 42% at 72% 72%,#ff5a2d 0,transparent 62%)}
+  .shell{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:34px 20px}
+  .check{width:84px;height:84px;border-radius:50%;background:var(--ok);display:grid;place-items:center;margin-bottom:22px;box-shadow:0 20px 50px -18px rgba(23,163,74,.7);animation:pop .6s var(--ease)}
+  @keyframes pop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+  .check svg{width:42px;height:42px}
+  .check path{stroke:#fff;stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:48;stroke-dashoffset:48;animation:draw .5s .3s var(--ease) forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  h1{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;margin-top:8px;text-align:center;max-width:36ch}
+
+  .tickets{width:100%;max-width:400px;margin:28px 0 8px;display:grid;gap:16px}
+  .summary{width:100%;max-width:400px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:15px 17px;margin-top:20px;display:grid;gap:10px}
+  .summary .row{display:flex;justify-content:space-between;gap:18px;font-size:13px;color:var(--muted)}
+  .summary .row strong{color:#fff;text-align:right}
+  .ticket{position:relative;background:#fff;color:var(--ink);border-radius:24px;overflow:hidden;box-shadow:0 40px 90px -40px rgba(0,0,0,.8)}
+  .ticket .top{position:relative;height:96px;overflow:hidden;background:linear-gradient(135deg,var(--ember),var(--red))}
+  .ticket .top .ov{position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(10,10,12,.5));display:flex;align-items:flex-end;padding:14px;color:#fff;font-weight:800;font-size:17px}
+  .ticket .body{padding:18px}
+  .trow{display:flex;justify-content:space-between;margin-bottom:12px;gap:12px}
+  .trow .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a9aa2}
+  .trow .v{font-weight:700;font-size:14px;margin-top:3px}
+  .perf{position:relative;border-top:2px dashed rgba(10,10,12,.15);margin:4px 0 16px}
+  .qr{width:132px;height:132px;margin:0 auto;border-radius:12px;background:repeating-linear-gradient(90deg,#0a0a0c 0 6px,#fff 6px 12px),repeating-linear-gradient(0deg,rgba(10,10,12,.06) 0 6px,transparent 6px 12px);background-blend-mode:multiply;border:6px solid #fff;box-shadow:0 0 0 1px rgba(10,10,12,.1)}
+  .code{text-align:center;font-weight:800;letter-spacing:.14em;margin-top:12px;font-size:13px}
+  .qrpay{text-align:center;font-size:9px;color:#9a9aa2;margin-top:6px;word-break:break-all;font-family:monospace}
+
+  .actions{display:flex;gap:10px;width:100%;max-width:400px;margin-top:22px}
+  .btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;padding:15px;font-weight:700;font-size:14px;border:none;transition:transform .4s var(--ease)}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:#fff;color:var(--ink)}
+  .btn.ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.16)}
+  .email{display:flex;align-items:center;gap:9px;margin-top:20px;font-size:12px;color:var(--muted)}
+  .loading-full{color:var(--muted);text-align:center;padding:40px 0}
+  @media print{.aura,.actions,.email,.sub{display:none}body{background:#fff;color:#000}.ticket{box-shadow:none;border:1px solid #ddd}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="aura"></div>
+<div class="shell">
+  <div class="check"><svg viewBox="0 0 48 48"><path d="M12 25l8 8 16-18"/></svg></div>
+  <h1>Pembayaran Berhasil!</h1>
+  <p class="sub">E-tiket sudah terbit. Tunjukkan QR di bawah saat masuk venue.</p>
+
+  <div class="summary" id="orderSummary" aria-label="Ringkasan pesanan" style="display:none"></div>
+
+  <div class="tickets" id="tickets"><div class="loading-full">Menerbitkan e-tiket…</div></div>
+
+  <div class="actions">
+    <button class="btn primary" id="download">⬇ Unduh E-Tiket</button>
+    <button class="btn ghost" onclick="location.href='index.html'">Ke Beranda</button>
+  </div>
+  <div class="email" id="emailLine">✉️ Dikirim ke emailmu — cek folder spam bila belum ada</div>
+</div>
+
+<script src="api.js"></script>
+<script>
+(function(){
+  function qs(k){ return new URLSearchParams(location.search).get(k); }
+  var bookingId = qs('bookingId') || (API.storage.get('rb_booking',{})||{}).bookingId;
+  var orderId = qs('orderId');
+  var ticketsEl=document.getElementById('tickets');
+  var summaryEl=document.getElementById('orderSummary');
+
+  document.getElementById('download').addEventListener('click', function(){ window.print(); });
+
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  if(!bookingId){
+    ticketsEl.innerHTML='<div class="loading-full">Tidak ada pesanan. <a href="index.html" style="color:#fff">Ke beranda</a></div>';
+    return;
+  }
+
+  function renderSummary(data){
+    var summary=[
+      ['Order ID', data.orderId || orderId || data.publicRef || '—'],
+      ['Jumlah tiket', String(data.ticketQuantity || (data.tickets||[]).length)],
+      ['Total pembayaran', API.minorToIDR(data.amountMinor||0)],
+      ['NIK pembeli', data.buyerNikMasked || '—']
+    ];
+    summaryEl.innerHTML=summary.map(function(row){ return '<div class="row"><span>'+escapeHtml(row[0])+'</span><strong>'+escapeHtml(row[1])+'</strong></div>'; }).join('');
+    summaryEl.style.display='grid';
+  }
+
+  // The callback URL is only a navigation signal. The backend payment status
+  // remains authoritative before tickets are rendered.
+  API.getPaymentStatus(bookingId).then(function(statusRes){
+    if(!statusRes.data || statusRes.data.bookingStatus!=='PAID') throw {meta:{errorCode:'BOOKING_NOT_PAYABLE'}};
+    return API.getTickets(bookingId);
+  }).then(function(res){
+    var data=res.data;
+    renderSummary(data);
+    var ev=data._event||{};
+    var when=ev.startsAt?new Date(ev.startsAt):null;
+    var dateTxt= when&&isFinite(when)?when.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'-';
+    var timeTxt= when&&isFinite(when)?when.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB':'-';
+    var venue=(ev.venue||'-').split('·')[0].trim();
+
+    if(!data.tickets || !data.tickets.length){ ticketsEl.innerHTML='<div class="loading-full">Belum ada tiket.</div>'; return; }
+
+    ticketsEl.innerHTML = data.tickets.map(function(t){
+      return '<div class="ticket"><div class="top"><div class="ov">'+escapeHtml(ev.name||'E-Tiket')+'</div></div>'
+        +'<div class="body">'
+        +'<div class="trow"><div><div class="k">Penonton</div><div class="v">'+escapeHtml(t.attendeeName)+'</div></div>'
+        +'<div style="text-align:right"><div class="k">NIK</div><div class="v">'+escapeHtml(t.attendeeNikMasked)+'</div></div></div>'
+        +'<div class="trow"><div><div class="k">Kategori</div><div class="v">'+escapeHtml(t.categoryCode)+'</div></div>'
+        +'<div style="text-align:right"><div class="k">Tanggal</div><div class="v">'+dateTxt+'</div></div></div>'
+        +'<div class="trow"><div><div class="k">Waktu</div><div class="v">'+timeTxt+'</div></div>'
+        +'<div style="text-align:right"><div class="k">Venue</div><div class="v">'+escapeHtml(venue)+'</div></div></div>'
+        +'<div class="perf"></div>'
+        +'<div class="qr" role="img" aria-label="QR tiket '+escapeHtml(t.ticketCode)+'"></div>'
+        +'<div class="code">'+escapeHtml(t.ticketCode)+'</div>'
+        +'<div class="qrpay">'+escapeHtml(t.qrPayload||'')+'</div>'
+        +'</div></div>';
+    }).join('');
+
+    API.notify('TICKETS_ISSUED', {bookingId:bookingId, count:data.tickets.length});
+  }).catch(function(err){
+    var code=(err&&err.meta&&err.meta.errorCode)||'UNKNOWN';
+    if(code==='BOOKING_NOT_PAYABLE'){
+      ticketsEl.innerHTML='<div class="loading-full">Pembayaran belum selesai. <a href="payment.html?bookingId='+encodeURIComponent(bookingId)+'" style="color:#fff">Kembali ke pembayaran</a></div>';
+    } else {
+      ticketsEl.innerHTML='<div class="loading-full">'+API.messageFor(code)+'</div>';
+    }
+  });
+})();
+</script>
+</body>
+</html>

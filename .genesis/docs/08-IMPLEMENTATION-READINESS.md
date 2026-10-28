@@ -1,0 +1,171 @@
+# IMPLEMENTATION-READINESS.md — Readiness Checklist
+
+> GENESIS Phase 5 output. Final consistency check before implementation (`WORKFLOW.md`).
+> Scope: **FE only** (Expo Universal). BE is a consumed contract delivered by another team.
+
+---
+
+## Overall Status
+
+- **Project:** Rusuh Booking Tiket — Front-End (Expo Universal)
+- **Date:** 2026-10-29
+- **Status:** **CONDITIONAL GO**
+
+```
+Documentation:  ✅
+Tasks:          ✅
+Skills:         ✅
+Blockers:       ⚠️  (no FE-internal P0; cross-team O1/O2/O4 open — mocked, non-blocking)
+Infrastructure: ⚠️  (repo/CI not yet scaffolded — that IS RBT-001/005, the first work)
+
+Overall:        CONDITIONAL GO — start on the critical path; mocks cover BE gaps
+```
+
+---
+
+## 1. Documentation Checklist
+
+| Document | Status | Path |
+|----------|--------|------|
+| GROOMING-DECISIONS (source of truth) | ✅ H1 | `.genesis/docs/03-GROOMING-DECISIONS.md` |
+| ARCHITECTURE | ✅ | `.genesis/docs/ARCHITECTURE.md` |
+| API-CONTRACT (OpenAPI ×7) | ✅ | `.genesis/docs/api-contract/` |
+| FE-BE-align (gap list) | ✅ | `.genesis/docs/FE-BE-align-contract.md` |
+| FE-Flow-Diagrams (screen/sequence/state/polling) | ✅ | `.genesis/docs/FE-Flow-Diagrams.md` |
+| DESIGN-SYSTEM | ✅ | `.genesis/docs/DESIGN-SYSTEM.md` |
+| EDGE-CASES | ✅ | `.genesis/docs/EDGE-CASES.md` |
+| SECURITY | ✅ | `.genesis/docs/SECURITY.md` |
+| OBSERVABILITY | ✅ | `.genesis/docs/OBSERVABILITY.md` |
+| TESTING-STRATEGY | ✅ | `.genesis/docs/TESTING-STRATEGY.md` |
+| PIPELINE (CI/CD) | ✅ | `.genesis/docs/PIPELINE.md` |
+| TASK-LIST | ✅ H3 | `.genesis/docs/05-TASK-LIST.md` |
+| SKILLS-MAP | ✅ H4 | `.genesis/docs/06-SKILLS-MAP.md` |
+| RULES (project) | ✅ H4 | `.genesis/docs/07-RULES.md` |
+| AGENTS (manifest) | ✅ H4 | `AGENTS.md` (repo root) |
+
+> **Not generated (deliberate):** INFRASTRUCTURE.md (BE-owned), standalone SEQUENCE/FLOW-DIAGRAMS (covered by FE-Flow-Diagrams §1–2).
+
+**Documentation Status:** ✅ All verified through H2/H3/H4.
+
+---
+
+## 2. Task Readiness
+
+| Metric | Value |
+|--------|-------|
+| Total Epics | 9 |
+| Total Stories | 44 |
+| Stories with specs (AC) | 44/44 |
+| Stories with estimates | 44/44 |
+| Dependencies mapped | yes |
+| Critical path identified | yes (E1→E2→E5→E6→E7→E8→E9) |
+
+### Milestones
+| Milestone | Scope | Status |
+|-----------|-------|--------|
+| M1 Walking skeleton | E1+E2 | ready to start |
+| M2 Discovery | E3+E4 | ready after E2 |
+| M3 Booking spine | E5+E6 | ready after E2 |
+| M4 Pay & deliver | E7+E8 | mock-first (D10.5) |
+| M5 Release-ready | E9 | after features |
+
+**Task Status:** ✅ Ready.
+
+---
+
+## 3. Skills Readiness
+
+| Domain | Skill | Source | Status |
+|--------|-------|--------|--------|
+| perf/RN | react-native-best-practices | local | ✅ |
+| design | frontend-design | local | ✅ |
+| e2e evidence | browser-recording | local | ✅ |
+| EAS / Playwright / Maestro / OpenAPI codegen / web push / Midtrans | documented fallback (registry/docs at task time) | — | ⚠️ fallback |
+
+**Skill conflicts:** none. **Skills Status:** ✅ All domains have a skill or documented fallback.
+
+---
+
+## 4. Blockers
+
+### P0 (FE-internal, must resolve before any work)
+_None._ The FE build has no internal P0 — mocks decouple it from BE.
+
+### P1 / External dependencies (cross-team — mocked, non-blocking)
+| ID | Blocks | Owner | Status | FE mitigation |
+|----|--------|-------|--------|---------------|
+| O1 | FE-NEED endpoints (buyer-set, anonymous join, `remainingTickets`, `description` JSON, profile-complete flag) | BE team | Open (requested) | Mock adapter behind the real ports (RBT-014) |
+| O2 | Midtrans `createAttempt` + page-token contract shapes | FE↔BE | Open (to discuss) | Mock `PaymentRepository` + SNAP simulator (RBT-065, D10.5) |
+| O4 | `/browse` server filter/sort + event history endpoint | BE team | Open | Client-side filtering until delivered |
+
+**Blocker Status:** ⚠️ No FE P0 open; 3 cross-team deps tracked and mocked.
+
+---
+
+## 5. Infrastructure Readiness
+
+| Item | Status | Note |
+|------|--------|------|
+| Repo / monorepo scaffold | ❌ | **This is RBT-001** — the first story |
+| CI pipeline (GitHub Actions + SonarCloud) | ❌ | **This is RBT-005** — PIPELINE.md is the spec |
+| EAS config (dev/prod channels) | ❌ | Lands with RBT-005/084 |
+| Environments (develop/main) | ⚠️ planned | Per D5.2 — provisioned during E1 |
+| Secrets strategy | ✅ documented | SECURITY.md D7.5; no secrets in `EXPO_PUBLIC_*` |
+
+> Infrastructure is "not ready" by design: **standing up the repo + CI is literally the first epic (E1)**, not a pre-req that blocks starting.
+
+**Infrastructure Status:** ⚠️ Expected — scaffolding is the first work item.
+
+---
+
+## 6. Go/No-Go Checklist
+
+### Must Have (blocking)
+- [x] No FE-internal P0 blockers
+- [x] Core docs verified (ARCHITECTURE, API-CONTRACT, FE-Flow)
+- [x] Task list complete with estimates + critical path
+- [ ] CI pipeline working — **is RBT-005 (first epic), not a pre-req**
+- [ ] Dev environment working — **is RBT-001 (first epic)**
+
+### Should Have
+- [x] All documentation verified
+- [x] Skills identified (or fallback) for all tasks
+- [x] Security checklist reviewed (SECURITY.md)
+- [x] Mock strategy for every BE dependency (O1/O2/O4)
+
+---
+
+## 7. Decision
+
+**Status:** **CONDITIONAL GO**
+
+**Rationale:** The GENESIS documentation package is complete and internally consistent (H1–H4 passed), the task breakdown is fully specified with a clear critical path, and every backend dependency is decoupled via mock adapters behind the real ports — so the FE team can start immediately on the critical path without waiting on BE. The only ❌ items (repo scaffold, CI) are **the first stories themselves** (RBT-001, RBT-005), not external pre-requisites. This is a GO for implementation, conditional only on treating E1 (Foundations) as the literal first step.
+
+**Can start now:**
+- E1 Foundations (RBT-001…005) — monorepo, Expo app, Clean-Arch packages, tokens, CI skeleton.
+- Then E2 (API layer + mock adapters), unblocking E3/E4/E5 in parallel.
+
+**Must resolve before affected features (not before start):**
+- O2 (Midtrans contract) before M4 payment goes real — mock covers it until then.
+- O1 FE-NEED endpoints before those flows go real — mocked until then.
+
+---
+
+## 8. Next Steps (if GO)
+
+1. [ ] Scaffold the monorepo + Expo app (RBT-001) and `set_project` to the new tree.
+2. [ ] Stand up the CI skeleton (RBT-005) per PIPELINE.md.
+3. [ ] Build E2 API layer + mock adapters (RBT-010…014, incl. mock PaymentRepository seed).
+4. [ ] Open the parallel batch E3/E4/E5 once E2 interfaces are frozen.
+5. [ ] Follow `.genesis/workflow/WORKFLOW.md` per story (Single-ticket mode default).
+
+---
+
+## Approval
+
+| Role | Decision | Date |
+|------|----------|------|
+| Product Owner | {pending} | |
+| FE Tech Lead | {pending} | |
+
+**GENESIS complete through Phase 5. Awaiting H5 Go/No-Go sign-off.**

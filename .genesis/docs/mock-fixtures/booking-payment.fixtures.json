@@ -1,0 +1,433 @@
+{
+  "$meta": {
+    "purpose": "Contract-faithful Booking + Payment mock responses for RBT-014/065. Verified 1:1 against '3. Booking Service API' + '4. Payment Service API'. Envelope {meta,data}; errors {meta,data:null} with x-errorCode hint. Mock adapter stamps serverTime=now and derives expiresAt/paymentExpiresAt from TTL at response time. All *Minor are integer IDR minor units (e.g. 35000000 = Rp 350.000). NIK always masked. Payment follows the prototype model (D10): FE page + method selection -> createAttempt -> SNAP redirectUrl -> verify status.",
+    "fixtureVersion": "1.0.0",
+    "groundedOn": ["3. Booking Service API", "4. Payment Service API"]
+  },
+
+  "bookingCatalog": {
+    "GET /api/v1/events -> 200 (list, mixed statuses)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "serverTime": "<<now>>",
+        "events": [
+          {
+            "eventId": "eeeeeee1-0000-4000-8000-000000000001",
+            "slug": "konser-rusuh-2026",
+            "name": "Konser Rusuh 2026",
+            "venue": "GBK, Jakarta",
+            "startsAt": "<<now+30d>>",
+            "salesStartsAt": "<<now-1d>>",
+            "salesEndsAt": "<<now+20d>>",
+            "status": "AVAILABLE",
+            "minPriceMinor": 35000000
+          },
+          {
+            "eventId": "eeeeeee2-0000-4000-8000-000000000002",
+            "slug": "festival-senja",
+            "name": "Festival Senja",
+            "venue": "ICE BSD",
+            "startsAt": "<<now+10d>>",
+            "salesStartsAt": "<<now-5d>>",
+            "salesEndsAt": "<<now+5d>>",
+            "status": "SOLD_OUT",
+            "minPriceMinor": 25000000
+          },
+          {
+            "eventId": "eeeeeee3-0000-4000-8000-000000000003",
+            "slug": "jazz-malam-nanti",
+            "name": "Jazz Malam Nanti",
+            "venue": "Istora",
+            "startsAt": "<<now+60d>>",
+            "salesStartsAt": "<<now+7d>>",
+            "salesEndsAt": "<<now+55d>>",
+            "status": "NOT_STARTED",
+            "minPriceMinor": 15000000
+          }
+        ]
+      }
+    },
+    "GET /api/v1/events/{eventId} -> 200 (detail + categories)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "event": {
+          "eventId": "eeeeeee1-0000-4000-8000-000000000001",
+          "slug": "konser-rusuh-2026",
+          "name": "Konser Rusuh 2026",
+          "venue": "GBK, Jakarta",
+          "startsAt": "<<now+30d>>",
+          "salesStartsAt": "<<now-1d>>",
+          "salesEndsAt": "<<now+20d>>",
+          "status": "AVAILABLE",
+          "minPriceMinor": 35000000
+        },
+        "maxTicketsPerOrder": 3,
+        "maxTicketsPerBuyerNik": 3,
+        "allowMixedCategories": false,
+        "categories": [
+          { "categoryId": "cat00001-0000-4000-8000-000000000001", "code": "CAT_FESTIVAL", "name": "Festival", "priceMinor": 35000000, "available": 120 },
+          { "categoryId": "cat00002-0000-4000-8000-000000000002", "code": "CAT_TRIBUNE", "name": "Tribune", "priceMinor": 50000000, "available": 8 }
+        ]
+      }
+    },
+    "GET /api/v1/events/{eventId} -> 404 (NOT_FOUND)": {
+      "meta": { "code": 404, "message": "Event tidak ditemukan", "x-errorCode": "NOT_FOUND" },
+      "data": null
+    }
+  },
+
+  "bookingSession": {
+    "POST /api/v1/booking-sessions -> 201 (from admissionToken)": {
+      "meta": { "code": 201, "message": "OK" },
+      "data": {
+        "sessionId": "5e551011-0000-4000-8000-000000000001",
+        "eventId": "eeeeeee1-0000-4000-8000-000000000001",
+        "phase": "SELECTING",
+        "reservedUnits": 3,
+        "maxSelectable": 3,
+        "buyerNikMasked": "3174********0001",
+        "allowMixedCategories": false,
+        "expiresAt": "<<now+5m>>",
+        "serverTime": "<<now>>",
+        "submitGraceSeconds": 10,
+        "selectionWarningSeconds": 60,
+        "editEnabled": true,
+        "maxEdits": 2,
+        "categories": [
+          { "categoryId": "cat00001-0000-4000-8000-000000000001", "code": "CAT_FESTIVAL", "name": "Festival", "priceMinor": 35000000, "available": 120 },
+          { "categoryId": "cat00002-0000-4000-8000-000000000002", "code": "CAT_TRIBUNE", "name": "Tribune", "priceMinor": 50000000, "available": 8 }
+        ],
+        "booking": null
+      }
+    },
+    "POST /api/v1/booking-sessions -> 403 (ADMISSION_TOKEN_INVALID)": {
+      "meta": { "code": 403, "message": "Token admission tidak valid atau sudah dipakai", "x-errorCode": "ADMISSION_TOKEN_INVALID" },
+      "data": null
+    },
+    "GET /api/v1/booking-sessions/current -> 200 (restore, same expiresAt)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "sessionId": "5e551011-0000-4000-8000-000000000001",
+        "eventId": "eeeeeee1-0000-4000-8000-000000000001",
+        "phase": "SELECTING",
+        "reservedUnits": 3,
+        "maxSelectable": 3,
+        "buyerNikMasked": "3174********0001",
+        "allowMixedCategories": false,
+        "expiresAt": "<<session.expiresAt — DO NOT reset on restore>>",
+        "serverTime": "<<now>>",
+        "editEnabled": true,
+        "maxEdits": 2,
+        "categories": [
+          { "categoryId": "cat00001-0000-4000-8000-000000000001", "code": "CAT_FESTIVAL", "name": "Festival", "priceMinor": 35000000, "available": 118 }
+        ],
+        "booking": null
+      }
+    },
+    "GET /api/v1/booking-sessions/current -> 404 (NOT_FOUND, no active session)": {
+      "meta": { "code": 404, "message": "Tidak ada sesi aktif", "x-errorCode": "NOT_FOUND" },
+      "data": null
+    },
+    "GET /api/v1/booking-sessions/{sessionId} -> 410 (SESSION_EXPIRED)": {
+      "meta": { "code": 410, "message": "Sesi pemilihan sudah habis", "x-errorCode": "SESSION_EXPIRED" },
+      "data": null
+    },
+
+    "POST /api/v1/booking-sessions/{sessionId}/attendee-checks -> 200 (AVAILABLE)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": { "result": "AVAILABLE", "checksRemaining": 7 }
+    },
+    "POST .../attendee-checks -> 200 (ALREADY_REGISTERED, blocks)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": { "result": "ALREADY_REGISTERED", "checksRemaining": 6 }
+    },
+    "POST .../attendee-checks -> 200 (CHECK_LIMIT_REACHED, does not block)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": { "result": "CHECK_LIMIT_REACHED", "checksRemaining": 0 }
+    },
+    "POST .../attendee-checks -> 422 (NIK_INVALID, quota not spent)": {
+      "meta": { "code": 422, "message": "Struktur NIK tidak valid", "x-errorCode": "NIK_INVALID" },
+      "data": null
+    },
+    "POST /api/v1/booking-sessions/{sessionId}/cancel -> 204 (no body)": {
+      "note": "204 No Content — selection abandoned; allocation released to next in queue. Prototype method: cancelSession()."
+    }
+  },
+
+  "booking": {
+    "POST /api/v1/bookings -> 201 (hold created, PENDING_PAYMENT)": {
+      "meta": { "code": 201, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "publicRef": "RB-00912",
+        "orderId": "RB-00912",
+        "status": "PENDING_PAYMENT",
+        "amountMinor": 70000000,
+        "ticketQuantity": 2,
+        "buyerNikMasked": "3174********0001",
+        "currency": "IDR",
+        "paymentExpiresAt": "<<now+10m>>",
+        "serverTime": "<<now>>",
+        "version": 1,
+        "canEdit": true,
+        "editableUntil": "<<now+8m>>",
+        "editsRemaining": 2,
+        "lockReason": null,
+        "paymentPageUrl": "/payment/b0000001-0000-4000-8000-000000000001",
+        "items": [
+          { "itemId": "it000001-0000-4000-8000-000000000001", "categoryId": "cat00001-0000-4000-8000-000000000001", "attendeeNikMasked": "3174********0001", "attendeeName": "Rizky Rachmawan" },
+          { "itemId": "it000002-0000-4000-8000-000000000002", "categoryId": "cat00001-0000-4000-8000-000000000001", "attendeeNikMasked": "3271********0007", "attendeeName": "Dewi Lestari" }
+        ]
+      }
+    },
+    "POST /api/v1/bookings -> 409 (ATTENDEE_NIK_ALREADY_REGISTERED)": {
+      "meta": { "code": 409, "message": "NIK pemegang sudah terdaftar di event ini", "x-errorCode": "ATTENDEE_NIK_ALREADY_REGISTERED" },
+      "data": null
+    },
+    "POST /api/v1/bookings -> 409 (CATEGORY_UNAVAILABLE)": {
+      "meta": { "code": 409, "message": "Kategori tiket sudah tidak tersedia", "x-errorCode": "CATEGORY_UNAVAILABLE" },
+      "data": null
+    },
+    "POST /api/v1/bookings -> 422 (QUANTITY_EXCEEDS_LIMIT)": {
+      "meta": { "code": 422, "message": "Jumlah tiket melebihi batas", "x-errorCode": "QUANTITY_EXCEEDS_LIMIT" },
+      "data": null
+    },
+    "POST /api/v1/bookings -> 422 (MIXED_CATEGORIES_NOT_ALLOWED)": {
+      "meta": { "code": 422, "message": "Tidak boleh mencampur kategori tiket", "x-errorCode": "MIXED_CATEGORIES_NOT_ALLOWED" },
+      "data": null
+    },
+    "POST /api/v1/bookings -> 410 (SESSION_EXPIRED)": {
+      "meta": { "code": 410, "message": "Sesi sudah habis", "x-errorCode": "SESSION_EXPIRED" },
+      "data": null
+    },
+    "GET /api/v1/bookings/{bookingId} -> 200 (PAID)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "publicRef": "RB-00912",
+        "orderId": "RB-00912",
+        "status": "PAID",
+        "amountMinor": 70000000,
+        "ticketQuantity": 2,
+        "buyerNikMasked": "3174********0001",
+        "currency": "IDR",
+        "paymentExpiresAt": "<<past>>",
+        "serverTime": "<<now>>",
+        "version": 3,
+        "canEdit": false,
+        "lockReason": "PAYMENT_STARTED",
+        "items": [
+          { "itemId": "it000001-0000-4000-8000-000000000001", "categoryId": "cat00001-0000-4000-8000-000000000001", "attendeeNikMasked": "3174********0001", "attendeeName": "Rizky Rachmawan" },
+          { "itemId": "it000002-0000-4000-8000-000000000002", "categoryId": "cat00001-0000-4000-8000-000000000001", "attendeeNikMasked": "3271********0007", "attendeeName": "Dewi Lestari" }
+        ]
+      }
+    },
+    "GET /api/v1/bookings/{bookingId}/tickets -> 200 (after PAID)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "orderId": "RB-00912",
+        "publicRef": "RB-00912",
+        "amountMinor": 70000000,
+        "ticketQuantity": 2,
+        "buyerNikMasked": "3174********0001",
+        "tickets": [
+          { "ticketCode": "TKT-RB00912-01", "categoryCode": "CAT_FESTIVAL", "attendeeName": "Rizky Rachmawan", "attendeeNikMasked": "3174********0001", "qrPayload": "mock-qr-payload-ticket-01" },
+          { "ticketCode": "TKT-RB00912-02", "categoryCode": "CAT_FESTIVAL", "attendeeName": "Dewi Lestari", "attendeeNikMasked": "3271********0007", "qrPayload": "mock-qr-payload-ticket-02" }
+        ]
+      }
+    },
+    "GET /api/v1/bookings/{bookingId}/tickets -> 409 (BOOKING_NOT_PAYABLE / not PAID yet)": {
+      "meta": { "code": 409, "message": "Pesanan belum lunas", "x-errorCode": "BOOKING_NOT_PAYABLE" },
+      "data": null
+    },
+    "PUT /api/v1/bookings/{bookingId}/items -> 200 (edited; paymentExpiresAt unchanged)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "publicRef": "RB-00912",
+        "orderId": "RB-00912",
+        "status": "PENDING_PAYMENT",
+        "amountMinor": 35000000,
+        "ticketQuantity": 1,
+        "buyerNikMasked": "3174********0001",
+        "currency": "IDR",
+        "paymentExpiresAt": "<<booking.paymentExpiresAt — unchanged on edit>>",
+        "serverTime": "<<now>>",
+        "version": 2,
+        "canEdit": true,
+        "editsRemaining": 1,
+        "lockReason": null,
+        "items": [
+          { "itemId": "it000003-0000-4000-8000-000000000003", "categoryId": "cat00001-0000-4000-8000-000000000001", "attendeeNikMasked": "3174********0001", "attendeeName": "Rizky Rachmawan" }
+        ]
+      }
+    },
+    "PUT /api/v1/bookings/{bookingId}/items -> 409 (EDIT_LIMIT_REACHED / BOOKING_VERSION_CONFLICT)": {
+      "meta": { "code": 409, "message": "Pesanan tidak bisa diubah lagi", "x-errorCode": "EDIT_LIMIT_REACHED" },
+      "data": null
+    },
+    "POST /api/v1/bookings/{bookingId}/cancel -> 200 (CANCELLED)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "publicRef": "RB-00912",
+        "orderId": "RB-00912",
+        "status": "CANCELLED",
+        "amountMinor": 70000000,
+        "ticketQuantity": 2,
+        "buyerNikMasked": "3174********0001",
+        "currency": "IDR",
+        "paymentExpiresAt": "<<past>>",
+        "serverTime": "<<now>>",
+        "version": 2,
+        "canEdit": false,
+        "lockReason": "BOOKING_ENDED"
+      }
+    },
+    "POST /api/v1/bookings/{bookingId}/cancel -> 409 (BOOKING_LOCKED)": {
+      "meta": { "code": 409, "message": "Pesanan tidak bisa dibatalkan", "x-errorCode": "BOOKING_LOCKED" },
+      "data": null
+    }
+  },
+
+  "payment": {
+    "GET /api/v1/payments/{bookingId}/page -> 200 (methods + timer)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "methods": ["VA_BCA", "VA_BNI", "VA_BRI", "VA_PERMATA", "QRIS", "GOPAY"],
+        "amountMinor": 70000000,
+        "paymentExpiresAt": "<<now+10m>>",
+        "serverTime": "<<now>>",
+        "currentAttempt": null,
+        "canEdit": true,
+        "editableUntil": "<<now+8m>>"
+      }
+    },
+    "GET /api/v1/payments/{bookingId}/page -> 200 (refresh, attempt PENDING restore)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "methods": ["VA_BCA", "VA_BNI", "VA_BRI", "VA_PERMATA", "QRIS", "GOPAY"],
+        "amountMinor": 70000000,
+        "paymentExpiresAt": "<<attempt.paymentExpiresAt — unchanged>>",
+        "serverTime": "<<now>>",
+        "currentAttempt": {
+          "attemptNo": 1,
+          "method": "QRIS",
+          "status": "PENDING",
+          "bookingVersion": 1,
+          "expiresAt": "<<now+9m>>",
+          "redirectUrl": "https://app.sandbox.midtrans.com/snap/v4/redirection/mock-snap-token",
+          "successReturnUrl": "/success/b0000001-0000-4000-8000-000000000001",
+          "failedReturnUrl": "/expired/b0000001-0000-4000-8000-000000000001?reason=payment-failed"
+        },
+        "canEdit": false,
+        "editableUntil": "<<past>>"
+      }
+    },
+    "GET /api/v1/payments/{bookingId}/page -> 409 (BOOKING_NOT_PAYABLE)": {
+      "meta": { "code": 409, "message": "Pesanan tidak dalam status menunggu pembayaran", "x-errorCode": "BOOKING_NOT_PAYABLE" },
+      "data": null
+    },
+
+    "POST /api/v1/payments/{bookingId}/attempts -> 201 (SNAP redirect)": {
+      "meta": { "code": 201, "message": "OK" },
+      "data": {
+        "attemptNo": 1,
+        "method": "QRIS",
+        "status": "CREATED",
+        "bookingVersion": 1,
+        "expiresAt": "<<now+9m>>",
+        "redirectUrl": "https://app.sandbox.midtrans.com/snap/v4/redirection/mock-snap-token",
+        "successReturnUrl": "/success/b0000001-0000-4000-8000-000000000001",
+        "failedReturnUrl": "/expired/b0000001-0000-4000-8000-000000000001?reason=payment-failed"
+      }
+    },
+    "POST /api/v1/payments/{bookingId}/attempts -> 422 (PAYMENT_METHOD_UNAVAILABLE)": {
+      "meta": { "code": 422, "message": "Metode pembayaran sedang tidak tersedia", "x-errorCode": "PAYMENT_METHOD_UNAVAILABLE" },
+      "data": null
+    },
+    "POST /api/v1/payments/{bookingId}/attempts -> 409 (BOOKING_NOT_PAYABLE)": {
+      "meta": { "code": 409, "message": "Pesanan tidak dapat dibayar", "x-errorCode": "BOOKING_NOT_PAYABLE" },
+      "data": null
+    },
+    "POST /api/v1/payments/{bookingId}/attempts -> 503 (PAYMENT_PROVIDER_UNAVAILABLE)": {
+      "meta": { "code": 503, "message": "Gateway pembayaran sedang gangguan, coba lagi", "x-errorCode": "PAYMENT_PROVIDER_UNAVAILABLE" },
+      "data": null
+    },
+
+    "POST /api/v1/payments/{bookingId}/page-tokens -> 201 (mobile WebView)": {
+      "meta": { "code": 201, "message": "OK" },
+      "data": {
+        "pageToken": "mock.page.token.oneuse",
+        "pageUrl": "/payment/b0000001-0000-4000-8000-000000000001?webview=1",
+        "expiresAt": "<<now+5m>>"
+      }
+    },
+    "POST /api/v1/payment-page-sessions -> 204 (rb_pay cookie set)": {
+      "note": "204 No Content — mock sets rb_pay cookie; body is empty."
+    },
+    "POST /api/v1/payment-page-sessions -> 403 (PAYMENT_PAGE_TOKEN_INVALID)": {
+      "meta": { "code": 403, "message": "Token halaman pembayaran tidak valid", "x-errorCode": "PAYMENT_PAGE_TOKEN_INVALID" },
+      "data": null
+    },
+
+    "GET /api/v1/payments/{bookingId}/status -> 200 (PAID)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "bookingStatus": "PAID",
+        "orderId": "RB-00912",
+        "paymentExpiresAt": "<<past>>",
+        "serverTime": "<<now>>",
+        "attempt": {
+          "attemptNo": 1, "method": "QRIS", "status": "SUCCEEDED", "bookingVersion": 2,
+          "expiresAt": "<<past>>",
+          "redirectUrl": "https://app.sandbox.midtrans.com/snap/v4/redirection/mock-snap-token",
+          "successReturnUrl": "/success/b0000001-0000-4000-8000-000000000001",
+          "failedReturnUrl": "/expired/b0000001-0000-4000-8000-000000000001?reason=payment-failed"
+        }
+      }
+    },
+    "GET /api/v1/payments/{bookingId}/status -> 200 (VERIFYING, keep polling)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "bookingStatus": "VERIFYING",
+        "paymentExpiresAt": "<<now+6m>>",
+        "serverTime": "<<now>>",
+        "attempt": { "attemptNo": 1, "method": "QRIS", "status": "PENDING", "bookingVersion": 1, "expiresAt": "<<now+6m>>", "redirectUrl": "https://app.sandbox.midtrans.com/snap/v4/redirection/mock-snap-token", "successReturnUrl": "/success/b0000001-0000-4000-8000-000000000001", "failedReturnUrl": "/expired/b0000001-0000-4000-8000-000000000001?reason=payment-failed" }
+      }
+    },
+    "GET /api/v1/payments/{bookingId}/status -> 200 (REVIEW, manual hold)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "bookingStatus": "REVIEW",
+        "paymentExpiresAt": "<<now+4m>>",
+        "serverTime": "<<now>>",
+        "attempt": { "attemptNo": 1, "method": "GOPAY", "status": "UNKNOWN", "bookingVersion": 1, "expiresAt": "<<now+4m>>", "redirectUrl": "https://app.sandbox.midtrans.com/snap/v4/redirection/mock-snap-token", "successReturnUrl": "/success/b0000001-0000-4000-8000-000000000001", "failedReturnUrl": "/expired/b0000001-0000-4000-8000-000000000001?reason=payment-failed" }
+      }
+    },
+    "GET /api/v1/payments/{bookingId}/status -> 200 (EXPIRED)": {
+      "meta": { "code": 200, "message": "OK" },
+      "data": {
+        "bookingId": "b0000001-0000-4000-8000-000000000001",
+        "bookingStatus": "EXPIRED",
+        "paymentExpiresAt": "<<past>>",
+        "serverTime": "<<now>>",
+        "attempt": { "attemptNo": 1, "method": "VA_BCA", "status": "EXPIRED", "bookingVersion": 1, "expiresAt": "<<past>>", "redirectUrl": "https://app.sandbox.midtrans.com/snap/v4/redirection/mock-snap-token", "successReturnUrl": "/success/b0000001-0000-4000-8000-000000000001", "failedReturnUrl": "/expired/b0000001-0000-4000-8000-000000000001?reason=payment-failed" }
+      }
+    },
+
+    "snapCallback (prototype method) — maps to the contract webhook + simulator": {
+      "note": "The prototype's API.snapCallback(bookingId, outcome) is NOT a FE-called real endpoint. In production SNAP calls the signed provider webhook (POST /api/v1/webhooks/midtrans) and the FE only reads GET /payments/{id}/status. The mock SNAP page (snap.html equivalent) simulates the outcome then the FE re-verifies: outcome='success' -> PAID/SUCCEEDED, 'failed' -> PENDING_PAYMENT/FAILED, deadline passed -> EXPIRED/EXPIRED. Return shape mirrors PaymentStatus."
+    },
+    "SNAP simulator scenarios (local-simulator, drives status transitions)": {
+      "note": "POST /api/v1/local-simulator/payments/{attemptId}/scenario — the mock SNAP page (snap.html equivalent) calls this. scenario enum: SETTLE -> PAID, SETTLE_LATE -> VERIFYING then PAID, EXPIRE -> EXPIRED, DENY -> FAILED, TIMEOUT -> UNKNOWN/REVIEW, DUPLICATE_WEBHOOK/OUT_OF_ORDER -> idempotent (status unchanged).",
+      "returns": "202 Accepted"
+    }
+  }
+}

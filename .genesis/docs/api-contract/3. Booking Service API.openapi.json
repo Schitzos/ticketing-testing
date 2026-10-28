@@ -1,0 +1,1871 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "3. Booking Service API",
+    "description": "Katalog event, sesi pilih, hold, ubah pesanan, e-tiket. Agregat Booking memakai event sourcing (ADR-019).",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "catalog"
+    },
+    {
+      "name": "booking"
+    },
+    {
+      "name": "ops"
+    }
+  ],
+  "paths": {
+    "/api/v1/events": {
+      "get": {
+        "summary": "Daftar event (cache 2 detik)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "listEvents",
+        "tags": [
+          "catalog"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/EventList"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}": {
+      "get": {
+        "summary": "Detail event dan kategori (cache 2 detik)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getEvent",
+        "tags": [
+          "catalog"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/EventDetail"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Event tidak ada — errorCode: `NOT_FOUND`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking-sessions": {
+      "post": {
+        "summary": "Buat atau pulihkan sesi dari admission token",
+        "deprecated": false,
+        "description": "",
+        "operationId": "createSession",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BookingSession"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "403": {
+            "description": "Token salah atau dipakai ulang — errorCode: `ADMISSION_TOKEN_INVALID`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "410": {
+            "description": "Giliran lewat — errorCode: `TURN_MISSED`, `SESSION_EXPIRED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking-sessions/current": {
+      "get": {
+        "summary": "Pulihkan sesi/pesanan (refresh, koneksi putus, back)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getCurrentSession",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "query",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BookingSession"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Tidak ada sesi aktif — errorCode: `NOT_FOUND`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "429": {
+            "description": "Terlalu banyak request (lihat header Retry-After) — errorCode: `RATE_LIMITED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking-sessions/{sessionId}": {
+      "get": {
+        "summary": "Sisa waktu dan ketersediaan live (fallback SSE)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getSession",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BookingSession"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "410": {
+            "description": "Sesi habis — errorCode: `SESSION_EXPIRED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking-sessions/{sessionId}/stream": {
+      "get": {
+        "summary": "SSE ketersediaan kategori dan sisa waktu",
+        "deprecated": false,
+        "description": "",
+        "operationId": "streamSession",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "text/event-stream: event `availability` dan `timer`; heartbeat SSE_HEARTBEAT_SECONDS",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "503": {
+            "description": "Batas koneksi SSE instance tercapai; klien beralih ke polling — errorCode: `DEPENDENCY_UNAVAILABLE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking-sessions/{sessionId}/attendee-checks": {
+      "post": {
+        "summary": "Cek NIK pemegang saat diketik",
+        "deprecated": false,
+        "description": "",
+        "operationId": "checkAttendee",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttendeeCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AttendeeCheck"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "422": {
+            "description": "Struktur NIK salah (jatah cek tidak berkurang) — errorCode: `NIK_INVALID`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "429": {
+            "description": "Terlalu banyak request (lihat header Retry-After) — errorCode: `RATE_LIMITED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking-sessions/{sessionId}/cancel": {
+      "post": {
+        "summary": "Keluar tanpa membeli",
+        "deprecated": false,
+        "description": "",
+        "operationId": "cancelSession",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Alokasi dilepas ke pengantre berikutnya",
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/bookings": {
+      "post": {
+        "summary": "Hold: NIK dan nama pemegang per tiket",
+        "deprecated": false,
+        "description": "",
+        "operationId": "createBooking",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unik per tombol; retry memakai key yang sama (SRS §3.2.24)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Booking"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "Field tidak valid — errorCode: `VALIDATION_ERROR`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "409": {
+            "description": "Konflik — errorCode: `ATTENDEE_NIK_ALREADY_REGISTERED`, `ATTENDEE_NIK_DUPLICATE_IN_ORDER`, `CATEGORY_UNAVAILABLE`, `BUYER_QUOTA_EXHAUSTED`, `IDEMPOTENCY_KEY_REUSED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "410": {
+            "description": "Sesi habis — errorCode: `SESSION_EXPIRED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "422": {
+            "description": "Melebihi batas atau aturan event — errorCode: `QUANTITY_EXCEEDS_LIMIT`, `MIXED_CATEGORIES_NOT_ALLOWED`, `NIK_INVALID`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "503": {
+            "description": "Dependency sementara tidak tersedia; ulangi dengan Idempotency-Key yang sama — errorCode: `DEPENDENCY_UNAVAILABLE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/bookings/{bookingId}/items": {
+      "put": {
+        "summary": "Ubah pesanan sebelum Bayar (penggantian atomik)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "replaceItems",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unik per tombol; retry memakai key yang sama (SRS §3.2.24)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceItemsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Pesanan baru; paymentExpiresAt tidak berubah",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Booking"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "409": {
+            "description": "Konflik; pesanan lama tetap utuh — errorCode: `BOOKING_LOCKED`, `BOOKING_VERSION_CONFLICT`, `EDIT_LIMIT_REACHED`, `CATEGORY_UNAVAILABLE`, `ATTENDEE_NIK_ALREADY_REGISTERED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "422": {
+            "description": "Melebihi batas — errorCode: `QUANTITY_EXCEEDS_LIMIT`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/bookings/{bookingId}": {
+      "get": {
+        "summary": "Status booking",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getBooking",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Booking"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Tidak ada — errorCode: `NOT_FOUND`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          },
+          {
+            "ticketLink": []
+          }
+        ]
+      }
+    },
+    "/api/v1/bookings/{bookingId}/cancel": {
+      "post": {
+        "summary": "Batal sebelum bayar (SHOULD)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "cancelBooking",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Booking"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "409": {
+            "description": "Tidak bisa dibatalkan — errorCode: `BOOKING_LOCKED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/bookings/{bookingId}/tickets": {
+      "get": {
+        "summary": "E-tiket (setelah PAID)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getTickets",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/TicketList"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "409": {
+            "description": "Belum PAID — errorCode: `BOOKING_NOT_PAYABLE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          },
+          {
+            "ticketLink": []
+          },
+          {
+            "userBearer1": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/bookings": {
+      "get": {
+        "summary": "Riwayat pesanan pembeli yang login (ADR-020)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "listMyBookings",
+        "tags": [
+          "booking"
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MyBookings"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "Access token tidak valid — errorCode: `UNAUTHORIZED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "userBearer1": []
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health (ALB dan HEALTHCHECK container, D-23)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "health",
+        "tags": [
+          "ops"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Semua dependency UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "503": {
+            "description": "Ada dependency DOWN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie": []
+          },
+          {
+            "visitorHeader": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "meta",
+          "data"
+        ],
+        "description": "Error envelope SRS §3.1.4. Tidak pernah memuat SQL, stack trace, secret, atau payload provider."
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "UP",
+              "DOWN"
+            ]
+          },
+          "service": {
+            "type": "string"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "UP",
+                    "DOWN"
+                  ]
+                },
+                "latencyMs": {
+                  "type": "integer"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "checkedAt",
+          "dependencies"
+        ]
+      },
+      "EventSummary": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "salesStartsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "salesEndsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NOT_STARTED",
+              "AVAILABLE",
+              "SOLD_OUT",
+              "CLOSED"
+            ]
+          },
+          "minPriceMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Minor unit IDR"
+          }
+        },
+        "required": [
+          "eventId",
+          "slug",
+          "name",
+          "salesStartsAt",
+          "salesEndsAt",
+          "status"
+        ]
+      },
+      "EventList": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventSummary"
+            }
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "events",
+          "serverTime"
+        ]
+      },
+      "EventDetail": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/EventSummary"
+          },
+          "maxTicketsPerOrder": {
+            "type": "integer"
+          },
+          "maxTicketsPerBuyerNik": {
+            "type": "integer"
+          },
+          "allowMixedCategories": {
+            "type": "boolean"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "categoryId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "priceMinor": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0,
+                  "description": "Minor unit IDR"
+                },
+                "available": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "categoryId",
+                "code",
+                "name",
+                "priceMinor",
+                "available"
+              ]
+            }
+          }
+        },
+        "required": [
+          "event",
+          "categories"
+        ]
+      },
+      "CreateSessionRequest": {
+        "type": "object",
+        "properties": {
+          "admissionToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "admissionToken"
+        ]
+      },
+      "BookingSession": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "SELECTING",
+              "EDITABLE",
+              "LOCKED",
+              "ENDED"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reservedUnits": {
+            "type": "integer"
+          },
+          "maxSelectable": {
+            "type": "integer"
+          },
+          "buyerNikMasked": {
+            "type": "string",
+            "description": "NIK tersamar",
+            "example": "3174********0001"
+          },
+          "allowMixedCategories": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitGraceSeconds": {
+            "type": "integer"
+          },
+          "selectionWarningSeconds": {
+            "type": "integer"
+          },
+          "editEnabled": {
+            "type": "boolean"
+          },
+          "maxEdits": {
+            "type": "integer"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "categoryId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "priceMinor": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0,
+                  "description": "Minor unit IDR"
+                },
+                "available": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "categoryId",
+                "code",
+                "name",
+                "priceMinor",
+                "available"
+              ]
+            }
+          },
+          "booking": {
+            "$ref": "#/components/schemas/Booking",
+            "nullable": true
+          }
+        },
+        "required": [
+          "sessionId",
+          "eventId",
+          "phase",
+          "reservedUnits",
+          "maxSelectable",
+          "expiresAt",
+          "serverTime",
+          "categories"
+        ]
+      },
+      "AttendeeCheckRequest": {
+        "type": "object",
+        "properties": {
+          "nik": {
+            "type": "string",
+            "pattern": "^[0-9]{16}$",
+            "description": "NIK 16 digit (dicek strukturnya; tidak pernah disimpan plaintext)"
+          }
+        },
+        "required": [
+          "nik"
+        ]
+      },
+      "AttendeeCheck": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "ALREADY_REGISTERED",
+              "CHECK_LIMIT_REACHED"
+            ]
+          },
+          "checksRemaining": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "result",
+          "checksRemaining"
+        ]
+      },
+      "HoldRequest": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "properties": {
+                "categoryId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "attendee": {
+                  "type": "object",
+                  "properties": {
+                    "nik": {
+                      "type": "string",
+                      "pattern": "^[0-9]{16}$",
+                      "description": "NIK 16 digit (dicek strukturnya; tidak pernah disimpan plaintext)"
+                    },
+                    "fullName": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  },
+                  "required": [
+                    "nik",
+                    "fullName"
+                  ]
+                }
+              },
+              "required": [
+                "categoryId",
+                "attendee"
+              ]
+            }
+          }
+        },
+        "required": [
+          "sessionId",
+          "items"
+        ]
+      },
+      "ReplaceItemsRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "properties": {
+                "categoryId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "attendee": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "nik": {
+                          "type": "string",
+                          "pattern": "^[0-9]{16}$",
+                          "description": "NIK 16 digit (dicek strukturnya; tidak pernah disimpan plaintext)"
+                        },
+                        "fullName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        }
+                      },
+                      "required": [
+                        "nik",
+                        "fullName"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "keepFromItemId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "keepFromItemId"
+                      ],
+                      "description": "Pertahankan pemegang item lama tanpa mengirim ulang NIK"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "categoryId",
+                "attendee"
+              ]
+            }
+          }
+        },
+        "required": [
+          "version",
+          "items"
+        ]
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publicRef": {
+            "type": "string",
+            "example": "RB-00912"
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Customer-facing order identifier. May equal publicRef when the product uses one public reference.",
+            "example": "RB-00912"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING_PAYMENT",
+              "VERIFYING",
+              "PAID",
+              "EXPIRED",
+              "CANCELLED",
+              "REVIEW"
+            ]
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Minor unit IDR"
+          },
+          "ticketQuantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "buyerNikMasked": {
+            "type": "string",
+            "description": "Masked buyer NIK; plaintext NIK is never returned.",
+            "example": "3174********0001"
+          },
+          "currency": {
+            "type": "string",
+            "const": "IDR"
+          },
+          "paymentExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "description": "Versi stream booking_events terakhir (ADR-019); kirim saat ubah pesanan"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "editableUntil": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "editsRemaining": {
+            "type": "integer"
+          },
+          "lockReason": {
+            "type": "string",
+            "enum": [
+              "PAYMENT_STARTED",
+              "SELECTION_EXPIRED",
+              "BOOKING_ENDED",
+              "EDIT_DISABLED",
+              null
+            ],
+            "nullable": true
+          },
+          "paymentPageUrl": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "categoryId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "attendeeNikMasked": {
+                  "type": "string",
+                  "description": "NIK tersamar",
+                  "example": "3174********0001"
+                },
+                "attendeeName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "itemId",
+                "categoryId",
+                "attendeeNikMasked",
+                "attendeeName"
+              ]
+            }
+          }
+        },
+        "required": [
+          "bookingId",
+          "publicRef",
+          "orderId",
+          "status",
+          "amountMinor",
+          "ticketQuantity",
+          "buyerNikMasked",
+          "paymentExpiresAt",
+          "serverTime",
+          "version",
+          "canEdit"
+        ]
+      },
+      "Ticket": {
+        "type": "object",
+        "properties": {
+          "ticketCode": {
+            "type": "string"
+          },
+          "categoryCode": {
+            "type": "string"
+          },
+          "attendeeName": {
+            "type": "string"
+          },
+          "attendeeNikMasked": {
+            "type": "string",
+            "description": "NIK tersamar",
+            "example": "3174********0001"
+          },
+          "qrPayload": {
+            "type": "string",
+            "description": "Provider or backend QR payload used to render/validate the e-ticket."
+          }
+        },
+        "required": [
+          "ticketCode",
+          "categoryCode",
+          "attendeeName",
+          "attendeeNikMasked",
+          "qrPayload"
+        ]
+      },
+      "TicketList": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "example": "RB-00912"
+          },
+          "publicRef": {
+            "type": "string",
+            "example": "RB-00912"
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Authoritative booking total in minor unit IDR."
+          },
+          "ticketQuantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "buyerNikMasked": {
+            "type": "string",
+            "description": "Masked buyer NIK; plaintext NIK is never returned.",
+            "example": "3174********0001"
+          },
+          "tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ticket"
+            }
+          }
+        },
+        "required": [
+          "bookingId",
+          "orderId",
+          "publicRef",
+          "amountMinor",
+          "ticketQuantity",
+          "buyerNikMasked",
+          "tickets"
+        ]
+      },
+      "MyBookings": {
+        "type": "object",
+        "properties": {
+          "bookings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "bookingId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "publicRef": {
+                  "type": "string"
+                },
+                "eventName": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PENDING_PAYMENT",
+                    "VERIFYING",
+                    "PAID",
+                    "EXPIRED",
+                    "CANCELLED",
+                    "REVIEW"
+                  ]
+                },
+                "amountMinor": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0,
+                  "description": "Minor unit IDR"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "bookings"
+        ],
+        "description": "Riwayat pesanan pembeli yang login (ADR-020)"
+      }
+    },
+    "responses": {},
+    "securitySchemes": {
+      "visitorCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "rb_visitor",
+        "description": "Visitor token web (HttpOnly, Secure, SameSite=Lax)"
+      },
+      "visitorHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Visitor-Token",
+        "description": "Visitor token mobile (secure storage)"
+      },
+      "userBearer1": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT (EdDSA)",
+        "description": "Access token User Service (login OTP, opsional)"
+      },
+      "ticketLink": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "t",
+        "description": "Ticket link token dari email e-tiket"
+      }
+    }
+  },
+  "servers": [],
+  "security": [
+    {
+      "visitorCookie": []
+    },
+    {
+      "visitorHeader": []
+    }
+  ]
+}

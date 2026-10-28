@@ -1,0 +1,946 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "4. Payment Service API",
+    "description": "Halaman bayar, SNAP redirect/callback attempt, dan provider webhook. Agregat Payment Attempt memakai event sourcing (ADR-019).",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Tim PT. Tiket Sampai Nonton Sentosa"
+    }
+  },
+  "tags": [
+    {
+      "name": "payment"
+    },
+    {
+      "name": "webhook"
+    },
+    {
+      "name": "simulator"
+    },
+    {
+      "name": "ops"
+    }
+  ],
+  "paths": {
+    "/api/v1/payments/{bookingId}/page": {
+      "get": {
+        "summary": "View model halaman bayar (web dan WebView)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getPaymentPage",
+        "tags": [
+          "payment"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaymentPage"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "409": {
+            "description": "Booking tidak menunggu pembayaran — errorCode: `BOOKING_NOT_PAYABLE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie2": []
+          },
+          {
+            "visitorHeader2": []
+          },
+          {
+            "paymentPageCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payments/{bookingId}/page-tokens": {
+      "post": {
+        "summary": "Token sekali pakai untuk WebView mobile",
+        "deprecated": false,
+        "description": "",
+        "operationId": "createPageToken",
+        "tags": [
+          "payment"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PageToken"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "409": {
+            "description": "Booking tidak menunggu pembayaran — errorCode: `BOOKING_NOT_PAYABLE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie2": []
+          },
+          {
+            "visitorHeader2": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payment-page-sessions": {
+      "post": {
+        "summary": "Tukar token WebView menjadi cookie payment page",
+        "deprecated": false,
+        "description": "",
+        "operationId": "exchangePageToken",
+        "tags": [
+          "payment"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Cookie rb_pay diset",
+            "headers": {}
+          },
+          "403": {
+            "description": "Token salah/kedaluwarsa — errorCode: `PAYMENT_PAGE_TOKEN_INVALID`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie2": []
+          },
+          {
+            "visitorHeader2": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payments/{bookingId}/attempts": {
+      "post": {
+        "summary": "Buat atau rekonsiliasi attempt (memanggil payment-lock dulu)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "createAttempt",
+        "tags": [
+          "payment"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unik per tombol; retry memakai key yang sama (SRS §3.2.24)",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAttemptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Attempt"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "409": {
+            "description": "Konflik — errorCode: `BOOKING_NOT_PAYABLE`, `IDEMPOTENCY_KEY_REUSED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "422": {
+            "description": "Metode tidak aktif — errorCode: `PAYMENT_METHOD_UNAVAILABLE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "503": {
+            "description": "Gateway gangguan — errorCode: `PAYMENT_PROVIDER_UNAVAILABLE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie2": []
+          },
+          {
+            "visitorHeader2": []
+          },
+          {
+            "paymentPageCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payments/{bookingId}/status": {
+      "get": {
+        "summary": "Status attempt dan hasil SNAP",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getPaymentStatus",
+        "tags": [
+          "payment"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaymentStatus"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie2": []
+          },
+          {
+            "visitorHeader2": []
+          },
+          {
+            "paymentPageCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/webhooks/midtrans": {
+      "post": {
+        "summary": "HTTP notification provider/SNAP (idempoten, out-of-order aman)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "providerWebhook",
+        "tags": [
+          "webhook"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MidtransNotification"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tersimpan durable (payment_callbacks) sebelum 2xx",
+            "headers": {}
+          },
+          "401": {
+            "description": "Signature salah — errorCode: `WEBHOOK_SIGNATURE_INVALID`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "midtransSignature": []
+          }
+        ]
+      }
+    },
+    "/api/v1/local-simulator/payments/{attemptId}/scenario": {
+      "post": {
+        "summary": "Simulasi gateway (hanya APP_ENV=local atau ci)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "simulatePayment",
+        "tags": [
+          "simulator"
+        ],
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulatorScenario"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Skenario dijalankan",
+            "headers": {}
+          },
+          "404": {
+            "description": "Simulator mati di lingkungan ini — errorCode: `NOT_FOUND`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie2": []
+          },
+          {
+            "visitorHeader2": []
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health (ALB dan HEALTHCHECK container, D-23)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "health",
+        "tags": [
+          "ops"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Semua dependency UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "503": {
+            "description": "Ada dependency DOWN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie2": []
+          },
+          {
+            "visitorHeader2": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "meta",
+          "data"
+        ],
+        "description": "Error envelope SRS §3.1.4. Tidak pernah memuat SQL, stack trace, secret, atau payload provider."
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "UP",
+              "DOWN"
+            ]
+          },
+          "service": {
+            "type": "string"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "UP",
+                    "DOWN"
+                  ]
+                },
+                "latencyMs": {
+                  "type": "integer"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "checkedAt",
+          "dependencies"
+        ]
+      },
+      "PaymentPage": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "VA_BCA",
+                "VA_BNI",
+                "VA_BRI",
+                "VA_PERMATA",
+                "QRIS",
+                "GOPAY"
+              ]
+            }
+          },
+          "amountMinor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Minor unit IDR"
+          },
+          "paymentExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentAttempt": {
+            "$ref": "#/components/schemas/Attempt",
+            "nullable": true
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "editableUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "bookingId",
+          "methods",
+          "amountMinor",
+          "paymentExpiresAt",
+          "serverTime",
+          "canEdit"
+        ]
+      },
+      "PageToken": {
+        "type": "object",
+        "properties": {
+          "pageToken": {
+            "type": "string",
+            "description": "Sekali pakai, TTL PAYMENT_PAGE_TOKEN_TTL_SECONDS"
+          },
+          "pageUrl": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "pageToken",
+          "pageUrl",
+          "expiresAt"
+        ]
+      },
+      "PageSessionRequest": {
+        "type": "object",
+        "properties": {
+          "pageToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pageToken"
+        ]
+      },
+      "CreateAttemptRequest": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "VA_BCA",
+              "VA_BNI",
+              "VA_BRI",
+              "VA_PERMATA",
+              "QRIS",
+              "GOPAY"
+            ]
+          }
+        },
+        "required": [
+          "method"
+        ]
+      },
+      "Attempt": {
+        "type": "object",
+        "properties": {
+          "attemptNo": {
+            "type": "integer"
+          },
+          "method": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "PENDING",
+              "UNKNOWN",
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELLED",
+              "EXPIRED",
+              "REFUND_REQUIRED",
+              "REFUNDED"
+            ]
+          },
+          "bookingVersion": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "redirectUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL SNAP yang dibuka FE setelah attempt dibuat"
+          },
+          "successReturnUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL FE yang dipanggil SNAP setelah pembayaran berhasil"
+          },
+          "failedReturnUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL FE yang dipanggil SNAP setelah pembayaran gagal atau dibatalkan"
+          },
+          "instruction": {
+            "deprecated": true,
+            "description": "Legacy server-driven instruction. Tidak digunakan pada alur SNAP redirect.",
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VA",
+                  "QR",
+                  "DEEPLINK"
+                ]
+              },
+              "bank": {
+                "type": "string"
+              },
+              "vaNumber": {
+                "type": "string"
+              },
+              "qrString": {
+                "type": "string"
+              },
+              "deeplinkUrl": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "attemptNo",
+          "method",
+          "status",
+          "bookingVersion",
+          "expiresAt",
+          "redirectUrl",
+          "successReturnUrl",
+          "failedReturnUrl"
+        ]
+      },
+      "PaymentStatus": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bookingStatus": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Public order identifier when available"
+          },
+          "paymentExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attempt": {
+            "$ref": "#/components/schemas/Attempt",
+            "nullable": true
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "bookingId",
+          "bookingStatus",
+          "paymentExpiresAt",
+          "serverTime"
+        ]
+      },
+      "MidtransNotification": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string"
+          },
+          "transaction_status": {
+            "type": "string"
+          },
+          "status_code": {
+            "type": "string"
+          },
+          "gross_amount": {
+            "type": "string"
+          },
+          "signature_key": {
+            "type": "string"
+          },
+          "transaction_id": {
+            "type": "string"
+          },
+          "settlement_time": {
+            "type": "string"
+          },
+          "fraud_status": {
+            "type": "string"
+          },
+          "payment_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "transaction_status",
+          "status_code",
+          "gross_amount",
+          "signature_key"
+        ],
+        "additionalProperties": true
+      },
+      "SimulatorScenario": {
+        "type": "object",
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "SETTLE",
+              "SETTLE_LATE",
+              "EXPIRE",
+              "DENY",
+              "TIMEOUT",
+              "DUPLICATE_WEBHOOK",
+              "OUT_OF_ORDER"
+            ]
+          }
+        },
+        "required": [
+          "scenario"
+        ]
+      }
+    },
+    "responses": {},
+    "securitySchemes": {
+      "visitorCookie2": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "rb_visitor",
+        "description": "Visitor token web (HttpOnly, Secure, SameSite=Lax)"
+      },
+      "visitorHeader2": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Visitor-Token",
+        "description": "Visitor token mobile (secure storage)"
+      },
+      "paymentPageCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "rb_pay",
+        "description": "Cookie payment page hasil tukar token WebView"
+      },
+      "midtransSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Signature-Key-Body",
+        "description": "Signature diverifikasi dari field signature_key body (SHA-512)"
+      }
+    }
+  },
+  "servers": [],
+  "security": [
+    {
+      "visitorCookie2": []
+    },
+    {
+      "visitorHeader2": []
+    }
+  ]
+}

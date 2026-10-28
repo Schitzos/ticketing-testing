@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pilih Tiket — Rusuh Tiket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--red:#EC1C24;--ember:#ff5a2d;--ink:#0a0a0c;--paper:#fbfbfd;--card:#fff;--muted:#6b6b76;--line:rgba(10,10,12,.09);--ok:#17a34a;--warn:#e8830c;--ease:cubic-bezier(.32,.72,0,1)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+  button{font:inherit;cursor:pointer}
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(251,251,253,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+  .topbar .in{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .back{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--muted);background:none;border:none}
+  .timer{display:inline-flex;align-items:center;gap:9px;background:rgba(236,28,36,.08);border:1px solid rgba(236,28,36,.22);color:var(--red);border-radius:999px;padding:8px 15px;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+  .timer .ic{width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .timer.warn{background:rgba(236,28,36,.14);animation:shake .4s ease}
+  @keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+
+  .wrap{max-width:760px;margin:0 auto;padding:26px 20px 170px}
+  .hero-ev{position:relative;border-radius:24px;overflow:hidden;aspect-ratio:16/7;margin-bottom:22px;box-shadow:0 30px 60px -34px rgba(10,10,12,.4);background:#222}
+  .hero-ev img{width:100%;height:100%;object-fit:cover}
+  .hero-ev .ov{position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(10,10,12,.85));display:flex;flex-direction:column;justify-content:flex-end;padding:22px;color:#fff}
+  .hero-ev h1{font-size:clamp(24px,5vw,34px);font-weight:800;letter-spacing:-.03em}
+  .hero-ev .meta{font-size:13px;opacity:.85;margin-top:6px}
+
+  .sec-lbl{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--muted);margin:26px 0 13px;display:flex;align-items:center;justify-content:space-between}
+  .buyer{display:flex;align-items:center;gap:12px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+  .buyer .bk{width:40px;height:40px;border-radius:12px;background:rgba(236,28,36,.1);color:var(--red);display:grid;place-items:center;font-weight:800}
+  .buyer .bi{flex:1}
+  .buyer .bi .t{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .buyer .bi .v{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;margin-top:2px}
+  .buyer .ro{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 9px}
+
+  /* buyer NIK + email collection (queue is now anonymous) */
+  .buyerbox{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px;margin-bottom:10px}
+  .brow{margin-bottom:12px}
+  .brow:last-of-type{margin-bottom:0}
+  .brow label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;margin-bottom:6px;color:#44444c}
+  .brow input{width:100%;font-family:inherit;font-size:15px;font-weight:600;padding:12px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);letter-spacing:.02em}
+  .brow input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 4px rgba(236,28,36,.08)}
+  .brow input[readonly]{background:rgba(23,163,74,.06);border-color:rgba(23,163,74,.35)}
+  .brow .msg{font-size:11px;margin-top:6px;font-weight:600;min-height:14px}
+  .brow .msg.ok{color:var(--ok)}.brow .msg.err{color:var(--red)}
+  .badge-auto{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--ok);background:rgba(23,163,74,.12);border:1px solid rgba(23,163,74,.3);border-radius:999px;padding:3px 8px}
+  .bnote{margin-top:12px;font-size:11px;color:var(--muted);line-height:1.5}
+
+  /* mini login modal (OTP) */
+  .lg-back{position:fixed;inset:0;z-index:90;background:rgba(5,5,7,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
+  .lg-back.show{display:flex}
+  .lg{width:100%;max-width:400px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 40px 90px -30px rgba(10,10,12,.5)}
+  .lg h3{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .lg .sub{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .lg .fld{margin-top:16px}
+  .lg label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}
+  .lg input{width:100%;font:inherit;font-size:15px;font-weight:600;padding:13px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);letter-spacing:.04em}
+  .lg input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 4px rgba(236,28,36,.08)}
+  .lg .err{color:var(--red);font-size:11px;margin-top:6px;min-height:14px;font-weight:600}
+  .lg .hint{font-size:11px;color:var(--muted);margin-top:8px}
+  .lg-actions{display:flex;gap:10px;margin-top:20px}
+  .lg-actions .ghost{flex:0 0 auto;background:rgba(10,10,12,.05);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:13px 18px;font-weight:600}
+  .lg-actions .go{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:13px;font-weight:700;transition:opacity .3s}
+  .lg-actions .go:disabled{opacity:.45;cursor:not-allowed}
+  .lg-actions .go .pin{width:24px;height:24px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-size:12px}
+  .lg .spin{width:15px;height:15px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+
+  .item{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;position:relative}
+  .item .ihead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .item .ihead .n{font-weight:800;font-size:14px}
+  .item .ihead .rm{background:none;border:none;color:var(--red);font-size:12px;font-weight:700}
+  .item .ihead .rm:disabled{color:var(--muted);opacity:.5}
+  .row{margin-bottom:10px}
+  .row label{display:block;font-size:11px;font-weight:700;margin-bottom:5px;color:#44444c}
+  .row select,.row input{width:100%;font-family:inherit;font-size:15px;font-weight:600;padding:12px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink)}
+  .row select:focus,.row input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 4px rgba(236,28,36,.08)}
+  .row .msg{font-size:11px;margin-top:6px;font-weight:600;min-height:14px}
+  .row .msg.ok{color:var(--ok)}.row .msg.err{color:var(--red)}.row .msg.warn{color:var(--warn)}
+  .usebuyer{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;font-weight:600;color:#44444c;cursor:pointer;user-select:none}
+  .usebuyer input{width:17px;height:17px;accent-color:var(--red);flex-shrink:0;cursor:pointer}
+  .usebuyer.disabled{opacity:.45;cursor:not-allowed}
+  .usebuyer.disabled input{cursor:not-allowed}
+  .addbtn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;background:rgba(10,10,12,.04);border:1.5px dashed var(--line);border-radius:16px;padding:15px;font-weight:700;font-size:14px;color:var(--ink);transition:background .3s}
+  .addbtn:hover:not(:disabled){background:rgba(10,10,12,.07)}
+  .addbtn:disabled{opacity:.45;cursor:not-allowed}
+
+  .quota{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);background:rgba(232,131,12,.08);border:1px solid rgba(232,131,12,.2);border-radius:12px;padding:11px 14px;margin:12px 0}
+  .quota b{color:var(--warn)}
+
+  .checkout{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(18px);border-top:1px solid var(--line);padding:16px 20px calc(16px + env(safe-area-inset-bottom))}
+  .checkout .in{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .checkout .total .t{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .checkout .total .v{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .cta{display:inline-flex;align-items:center;gap:12px;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:15px 12px 15px 26px;font-weight:700;font-size:15px;transition:transform .4s var(--ease),opacity .3s}
+  .cta:active{transform:scale(.97)}
+  .cta:disabled{opacity:.4;cursor:not-allowed}
+  .cta .pin{width:32px;height:32px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-size:14px}
+  .spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);z-index:60;background:var(--ink);color:#fff;padding:14px 20px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;transition:opacity .4s,transform .4s var(--ease);box-shadow:0 20px 50px -20px rgba(0,0,0,.6);max-width:90%;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .loading-full{max-width:760px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--muted)}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="in">
+    <button class="back" id="backBtn">← Kembali</button>
+    <div class="timer" id="timer"><span class="ic"></span><span id="tval">--:--</span></div>
+  </div>
+</div>
+
+<div class="wrap" id="wrap">
+  <div class="loading-full" id="loading">Memulihkan sesi pemilihan…</div>
+  <div id="content" style="display:none">
+    <div class="hero-ev" id="heroEv">
+      <div class="ov"><h1 id="evName">—</h1><div class="meta" id="evMeta"></div></div>
+    </div>
+
+    <div class="sec-lbl"><span>Data Pembeli</span></div>
+    <div class="buyerbox">
+      <div class="brow">
+        <label for="buyerNik">NIK Pembeli <span id="buyerBadge" class="badge-auto" style="display:none">Terisi dari akun</span></label>
+        <input id="buyerNik" inputmode="numeric" maxlength="16" placeholder="16 digit KTP pembeli" autocomplete="off" aria-describedby="buyerNikMsg">
+        <div class="msg" id="buyerNikMsg"></div>
+      </div>
+      <div class="brow">
+        <label for="buyerEmail">Email Pembeli</label>
+        <input id="buyerEmail" type="email" placeholder="kamu@email.com" autocomplete="email" aria-describedby="buyerEmailMsg">
+        <div class="msg" id="buyerEmailMsg"></div>
+      </div>
+      <p class="bnote">NIK pembeli dipakai untuk batas <b>3 tiket / NIK</b> &amp; divalidasi server. Ini berbeda dari NIK <b>penonton</b> di tiap tiket.</p>
+    </div>
+
+    <div class="sec-lbl"><span>Tiket &amp; Penonton</span><span id="selCount" style="color:var(--ink);font-weight:800"></span></div>
+    <div id="items"></div>
+    <button class="addbtn" id="addItem">＋ Tambah tiket</button>
+    <div class="quota">⚠️ <span>Batas <b id="quotaTxt">3 tiket per NIK</b> divalidasi server saat Lanjut Bayar. Tiap tiket butuh 1 NIK penonton.</span></div>
+  </div>
+</div>
+
+<div class="checkout">
+  <div class="in">
+    <div class="total"><div class="t">Total</div><div class="v" id="total">Rp 0</div></div>
+    <button class="cta" id="pay" disabled>Lanjut Bayar <span class="pin">↗</span></button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- CONFIRM LEAVE DIALOG -->
+<div class="lg-back" id="confirmBack" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="lg">
+    <h3 id="confirmTitle">Tinggalkan halaman ini?</h3>
+    <p class="sub">Kalau kamu keluar sekarang, sesi pemilihan tiket dilepas dan <b>kamu harus mengulang antrean dari awal</b>. Yakin mau keluar?</p>
+    <div class="lg-actions">
+      <button class="ghost" type="button" id="stayBtn">Tetap di sini</button>
+      <button class="go" type="button" id="leaveBtn" style="background:var(--red)">Ya, keluar <span class="pin" style="background:#fff;color:var(--red)">↗</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function qs(k){ return new URLSearchParams(location.search).get(k); }
+  // V5 keeps query parameters because it is a static HTML prototype. The
+  // checkout identity is sessionId; eventId is only the event context used
+  // while exchanging an admission token or restoring a session.
+  var sessionId = qs('sessionId');
+  var eventId = qs('eventId') || API.storage.get('rb_last_event', null);
+
+  var session=null, rows=[], timerInt=null, checkingExpiry=false;
+  var itemsEl=document.getElementById('items'), addBtn=document.getElementById('addItem'),
+      payBtn=document.getElementById('pay'), totalEl=document.getElementById('total'),
+      toast=document.getElementById('toast'), selCount=document.getElementById('selCount'),
+      tEl=document.getElementById('tval'), tBox=document.getElementById('timer');
+
+  // Buyer (NIK + email) — collected here because the queue is now anonymous.
+  var buyerNikEl=document.getElementById('buyerNik'), buyerEmailEl=document.getElementById('buyerEmail'),
+      buyerNikMsg=document.getElementById('buyerNikMsg'), buyerEmailMsg=document.getElementById('buyerEmailMsg'),
+      buyerBadge=document.getElementById('buyerBadge');
+  var buyer = { name:'', nik:'', email:'' };
+  var buyerSynced=false; // whether setBuyer succeeded for the current values
+
+  function emailValid(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v||''); }
+  function buyerNikValid(){ return /^[0-9]{16}$/.test(buyer.nik); }
+  function buyerEmailValid(){ return emailValid(buyer.email); }
+  function buyerValid(){ return buyerNikValid() && buyerEmailValid(); }
+
+  function showToast(m){ toast.textContent=m; toast.classList.add('show'); setTimeout(function(){toast.classList.remove('show');},4200); }
+  function catById(id){ for(var i=0;i<session.categories.length;i++) if(session.categories[i].categoryId===id) return session.categories[i]; return null; }
+
+  // -------------------------------------------------------------------------
+  // Row model: each row = {categoryId, name, nik, nikOk, checkState}
+  // -------------------------------------------------------------------------
+  function newRow(){ return { categoryId:(session.categories[0]||{}).categoryId||'', name:'', nik:'', nikOk:false, check:null, useBuyer:false }; }
+
+  function renderRows(){
+    selCount.textContent = rows.length+' / '+session.maxSelectable;
+    itemsEl.innerHTML = rows.map(function(r,i){
+      var opts = session.categories.map(function(c){
+        var out=c.available<=0;
+        return '<option value="'+c.categoryId+'"'+(c.categoryId===r.categoryId?' selected':'')+(out?' disabled':'')+'>'
+          +c.name+' — '+API.minorToIDR(c.priceMinor)+(out?' (habis)':'')+'</option>';
+      }).join('');
+      var buyerReady = buyerNikValid();
+      // "Pembeli ikut nonton" hanya boleh dipakai di SATU tiket (NIK pembeli unik).
+      var usedElsewhere = rows.some(function(rr,idx){ return idx!==i && rr.useBuyer; });
+      var cbEnabled = buyerReady && (!usedElsewhere || r.useBuyer);
+      var cbHint = usedElsewhere && !r.useBuyer ? ' (sudah dipakai di tiket lain)' : '';
+      return '<div class="item" data-i="'+i+'">'
+        +'<div class="ihead"><span class="n">Tiket #'+(i+1)+'</span>'
+        +'<button class="rm" data-rm="'+i+'"'+(rows.length<=1?' disabled':'')+'>Hapus</button></div>'
+        +'<div class="row"><label>Kategori</label><select data-cat="'+i+'">'+opts+'</select></div>'
+        +'<div class="row"><label>Nama Penonton</label><input data-name="'+i+'"'+(r.useBuyer?' disabled':'')+' value="'+(r.name||'').replace(/"/g,'&quot;')+'" placeholder="Nama sesuai KTP" autocomplete="off"></div>'
+        +'<div class="row"><label>NIK Penonton</label><input data-nik="'+i+'" inputmode="numeric" maxlength="16"'+(r.useBuyer?' disabled':'')+' value="'+(r.nik||'')+'" placeholder="16 digit KTP penonton" autocomplete="off">'
+        +'<div class="msg '+msgCls(r)+'" data-msg="'+i+'">'+msgTxt(r)+'</div>'
+        +'<label class="usebuyer'+(cbEnabled?'':' disabled')+'"><input type="checkbox" data-usebuyer="'+i+'"'+(r.useBuyer?' checked':'')+(cbEnabled?'':' disabled')+'> Gunakan NIK pembeli (pembeli ikut nonton)'+cbHint+'</label>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+    wireRows();
+    addBtn.disabled = rows.length>=session.maxSelectable;
+    recalc();
+  }
+
+  function msgCls(r){ if(r.useBuyer) return 'ok'; if(!r.nik) return ''; if(r.nik.length<16) return 'err'; if(r.check==='ALREADY_REGISTERED') return 'err'; if(r.check==='CHECK_LIMIT_REACHED') return 'warn'; if(r.check==='AVAILABLE') return 'ok'; return ''; }
+  function msgTxt(r){
+    if(r.useBuyer) return '✓ Memakai NIK pembeli';
+    if(!r.nik) return '';
+    if(r.nik.length<16) return 'NIK harus 16 digit ('+r.nik.length+'/16)';
+    if(r.check==='checking') return 'Mengecek NIK…';
+    if(r.check==='AVAILABLE') return '✓ NIK tersedia untuk didaftarkan';
+    if(r.check==='ALREADY_REGISTERED') return '✕ NIK ini sudah terdaftar di tiket lain';
+    if(r.check==='CHECK_LIMIT_REACHED') return '⚠ Batas pengecekan NIK tercapai — lanjut, server cek ulang saat bayar';
+    return '';
+  }
+
+  var checkDebounce={};
+  function wireRows(){
+    itemsEl.querySelectorAll('[data-cat]').forEach(function(sel){
+      sel.addEventListener('change', function(){ rows[+sel.dataset.cat].categoryId=sel.value; recalc(); });
+    });
+    itemsEl.querySelectorAll('[data-name]').forEach(function(inp){
+      inp.addEventListener('input', function(){ rows[+inp.dataset.name].name=inp.value; recalc(); });
+    });
+    itemsEl.querySelectorAll('[data-nik]').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var i=+inp.dataset.nik; inp.value=inp.value.replace(/\D/g,'').slice(0,16);
+        var r=rows[i]; r.nik=inp.value; r.nikOk=false; r.check=null;
+        var msg=itemsEl.querySelector('[data-msg="'+i+'"]');
+        if(inp.value.length===16){
+          r.check='checking'; if(msg){ msg.className='msg'; msg.textContent='Mengecek NIK…'; }
+          clearTimeout(checkDebounce[i]);
+          checkDebounce[i]=setTimeout(function(){ runCheck(i); }, 350);
+        } else {
+          if(msg){ msg.className='msg '+msgCls(r); msg.textContent=msgTxt(r); }
+        }
+        recalc();
+      });
+    });
+    itemsEl.querySelectorAll('[data-rm]').forEach(function(b){
+      b.addEventListener('click', function(){ var i=+b.dataset.rm; if(rows.length>1){ rows.splice(i,1); renderRows(); } });
+    });
+    itemsEl.querySelectorAll('[data-usebuyer]').forEach(function(cb){
+      cb.addEventListener('change', function(){
+        var i=+cb.dataset.usebuyer, r=rows[i];
+        if(cb.checked){
+          if(!buyerNikValid()){ cb.checked=false; showToast('Isi NIK pembeli dulu untuk memakai ini.'); return; }
+          r.useBuyer=true; r.nik=buyer.nik; r.check='AVAILABLE'; r.nikOk=true;
+          if(buyer.name && !r.name.trim()) r.name=buyer.name; // pembeli ikut nonton → pakai nama pembeli
+        } else {
+          r.useBuyer=false; r.nik=''; r.check=null; r.nikOk=false;
+          if(buyer.name && r.name===buyer.name) r.name=''; // bersihkan nama yang tadi auto-fill dari pembeli
+        }
+        renderRows();
+      });
+    });
+  }
+
+  function runCheck(i){
+    var r=rows[i]; if(!r || r.nik.length!==16) return;
+    API.attendeeCheck(session.sessionId, r.nik).then(function(res){
+      r.check=res.data.result; r.nikOk=(res.data.result==='AVAILABLE'||res.data.result==='CHECK_LIMIT_REACHED');
+      var msg=itemsEl.querySelector('[data-msg="'+i+'"]');
+      if(msg){
+        var extra = res.data.result==='AVAILABLE' ? ' (sisa cek: '+res.data.checksRemaining+')' : '';
+        msg.className='msg '+msgCls(r); msg.textContent=msgTxt(r)+extra;
+      }
+      recalc();
+    }).catch(function(err){
+      var r2=rows[i]; r2.check=null; r2.nikOk=false;
+      var msg=itemsEl.querySelector('[data-msg="'+i+'"]');
+      if(msg){ msg.className='msg err'; msg.textContent=API.messageFor((err&&err.meta&&err.meta.errorCode)||'NIK_INVALID'); }
+      recalc();
+    });
+  }
+
+  function rowValid(r){
+    if(r.useBuyer) return buyerNikValid(); // pakai NIK pembeli → valid selama NIK pembeli valid
+    if(r.nik.length!==16) return false;
+    if(!r.name.trim()) return false;
+    // Tolak hanya bila NIK penonton benar-benar sudah terdaftar atau masih dicek.
+    if(r.check==='ALREADY_REGISTERED') return false;
+    if(r.check==='checking') return false;
+    return true; // AVAILABLE, CHECK_LIMIT_REACHED, atau belum sempat dicek → biar server validasi final
+  }
+
+  function recalc(){
+    var sum=0, allValid=rows.length>=1 && rows.length<=session.maxSelectable;
+    rows.forEach(function(r){
+      var c=catById(r.categoryId); if(c) sum+=c.priceMinor;
+      if(!rowValid(r)) allValid=false;
+    });
+    totalEl.textContent=API.minorToIDR(sum);
+    // mixed category rule
+    if(!session.allowMixedCategories){
+      var first=rows[0] && rows[0].categoryId;
+      var mixed=rows.some(function(r){ return r.categoryId!==first; });
+      if(mixed) allValid=false;
+    }
+    // buyer NIK + email must be valid too
+    if(!buyerValid()) allValid=false;
+    payBtn.disabled=!allValid;
+  }
+
+  addBtn.addEventListener('click', function(){
+    if(rows.length>=session.maxSelectable){ showToast('Maksimal '+session.maxSelectable+' tiket.'); return; }
+    rows.push(newRow()); renderRows();
+  });
+
+  // -------------------------------------------------------------------------
+  // Buyer NIK + email: validation, auto-fill, and login modal
+  // -------------------------------------------------------------------------
+  function validateBuyer(){
+    buyerNikMsg.className='msg'; buyerNikMsg.textContent='';
+    buyerEmailMsg.className='msg'; buyerEmailMsg.textContent='';
+    if(buyer.nik && buyer.nik.length<16){ buyerNikMsg.className='msg err'; buyerNikMsg.textContent='NIK harus 16 digit ('+buyer.nik.length+'/16)'; }
+    else if(buyerNikValid()){ buyerNikMsg.className='msg ok'; buyerNikMsg.textContent='✓ NIK pembeli valid'; }
+    if(buyer.email && !buyerEmailValid()){ buyerEmailMsg.className='msg err'; buyerEmailMsg.textContent='Format email belum benar'; }
+    else if(buyerEmailValid()){ buyerEmailMsg.className='msg ok'; buyerEmailMsg.textContent='✓ Email valid'; }
+    recalc();
+  }
+
+  buyerNikEl.addEventListener('input', function(){
+    this.value=this.value.replace(/\D/g,'').slice(0,16);
+    buyer.nik=this.value; buyerSynced=false; validateBuyer();
+    // NIK pembeli berubah → sinkronkan baris yang memakai "gunakan NIK pembeli"
+    // dan refresh status enable/disable checkbox.
+    rows.forEach(function(r){ if(r.useBuyer) r.nik=buyer.nik; });
+    if(session) renderRows();
+  });
+  buyerEmailEl.addEventListener('input', function(){
+    buyer.email=this.value.trim(); buyerSynced=false; validateBuyer();
+  });
+
+  function applyProfile(profile){
+    // Prototype auto-fill: use plaintext NIK that the demo account carries.
+    // In production the FE never receives a plaintext NIK — auto-fill would use
+    // only data the user themselves saved on their own device.
+    var nik = profile._nikPlain || '';
+    var email = profile._emailPlain || profile.email || '';
+    if(/^[0-9]{16}$/.test(nik)){ buyer.nik=nik; buyerNikEl.value=nik; }
+    if(email){ buyer.email=email; buyerEmailEl.value=email; }
+    // Buyer's full name (from registration) — used to auto-fill the attendee name
+    // when "pembeli ikut nonton" is checked.
+    if(profile.fullName){ buyer.name=profile.fullName; }
+    buyerBadge.style.display = (buyer.nik||buyer.email) ? '' : 'none';
+    buyerSynced=false;
+    validateBuyer();
+    // NIK pembeli baru terisi dari profil → render ulang baris tiket supaya
+    // checkbox "Gunakan NIK pembeli" ikut aktif (tidak lagi disabled).
+    if(session && rows.length) renderRows();
+  }
+
+  function tryAutoFill(){
+    API.getMe().then(function(res){
+      var u=res.data||{};
+      if(u.hasNik) applyProfile(u);
+    }).catch(function(){ /* guest — leave fields empty */ });
+  }
+
+  // ---- confirm-leave dialog (poin 4): keluar = mengulang antrean ----
+  var confirmBack=document.getElementById('confirmBack');
+  var lastCfFocus=null;
+  function openConfirm(){
+    lastCfFocus=document.activeElement;
+    confirmBack.classList.add('show');
+    setTimeout(function(){ var b=document.getElementById('stayBtn'); if(b) b.focus(); },50);
+  }
+  function closeConfirm(){ confirmBack.classList.remove('show'); if(lastCfFocus) lastCfFocus.focus(); }
+  document.getElementById('backBtn').addEventListener('click', openConfirm);
+  document.getElementById('stayBtn').addEventListener('click', closeConfirm);
+  confirmBack.addEventListener('click', function(e){ if(e.target===confirmBack) closeConfirm(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && confirmBack.classList.contains('show')) closeConfirm(); });
+  document.getElementById('leaveBtn').addEventListener('click', function(){
+    // keluar → lepas sesi & antrean, kembali ke beranda (harus antre ulang)
+    if(timerInt) clearInterval(timerInt);
+    API.resetFlow();
+    location.href='index.html';
+  });
+
+  // -------------------------------------------------------------------------
+  // Timer from BookingSession.expiresAt + serverTime (server-authoritative)
+  // -------------------------------------------------------------------------
+  function startTimer(){
+    function tick(){
+      var rem = Math.round(API.remainingMs(session.expiresAt)/1000);
+      if(rem<0) rem=0;
+      var m=Math.floor(rem/60), s=rem%60;
+      tEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+      if(rem<=(session.selectionWarningSeconds||60)) tBox.classList.add('warn');
+      if(rem<=0 && !checkingExpiry){
+        checkingExpiry=true;
+        if(timerInt) clearInterval(timerInt);
+        tEl.textContent='...';
+        // The browser timer is only a display aid. Re-fetch the session before
+        // deciding that the user has really expired.
+        API.getCurrentSession(eventId).then(function(res){
+          session=res.data || session;
+          checkingExpiry=false;
+          if(API.remainingMs(session.expiresAt)>0){ startTimer(); }
+          else { location.href='expired.html?reason=booking&sessionId='+encodeURIComponent(session.sessionId); }
+        }).catch(function(){
+          // A failed authoritative check is fail-closed for the prototype.
+          location.href='expired.html?reason=booking&sessionId='+encodeURIComponent(session.sessionId);
+        });
+      }
+    }
+    tick(); timerInt=reduce?null:setInterval(tick,1000);
+  }
+
+  // -------------------------------------------------------------------------
+  // Lanjut Bayar → createBooking with Idempotency-Key
+  // -------------------------------------------------------------------------
+  payBtn.addEventListener('click', function(){
+    if(payBtn.disabled) return;
+    if(!buyerValid()){ showToast('Lengkapi NIK & email pembeli dulu.'); return; }
+    payBtn.disabled=true; var original=payBtn.innerHTML;
+    payBtn.innerHTML='<span class="spin"></span> Menyimpan data pembeli…';
+
+    var items = rows.map(function(r){ return { categoryId:r.categoryId, attendee:{ nik:r.nik, fullName:r.name.trim() } }; });
+    // Idempotency-Key is tied to this session's "pay" action and reused on retry.
+    var idem = API.idempotencyKey('booking-'+session.sessionId);
+
+    // FE-NEED: send buyer NIK + email to the session before creating the booking.
+    API.setBuyer(session.sessionId, { buyerNik: buyer.nik, email: buyer.email }).then(function(sres){
+      session = sres.data || session; buyerSynced=true;
+      document.getElementById('buyerNik'); // (buyer stays editable; masked value lives on session)
+      payBtn.innerHTML='<span class="spin"></span> Mengunci stok…';
+      return API.createBooking({ sessionId:session.sessionId, items:items }, idem);
+    }).then(function(res){
+      var b=res.data;
+      API.clearIdempotency('booking-'+session.sessionId); // next distinct booking gets a fresh key
+      API.notify('BOOKING_CREATED', {bookingId:b.bookingId});
+      location.href='payment.html?bookingId='+encodeURIComponent(b.bookingId);
+    }).catch(function(err){
+      var code=(err&&err.meta&&err.meta.errorCode)||'UNKNOWN';
+      payBtn.innerHTML=original; payBtn.disabled=false;
+      if(code==='SESSION_EXPIRED'){ location.href='expired.html?reason=booking&sessionId='+encodeURIComponent(session.sessionId); return; }
+      if(code==='NIK_INVALID'){ showToast('NIK pembeli belum valid.'); validateBuyer(); return; }
+      if(code==='CATEGORY_UNAVAILABLE'){
+        showToast(API.messageFor(code));
+        refreshSession();
+      } else {
+        showToast(API.messageFor(code));
+      }
+      recalc();
+    });
+  });
+
+  function refreshSession(){
+    API.getCurrentSession(eventId).then(function(res){ session=res.data; renderRows(); })
+      .catch(function(){});
+  }
+
+  // -------------------------------------------------------------------------
+  // Boot: create session from admission token, OR restore current session on refresh
+  // -------------------------------------------------------------------------
+  function hydrate(s){
+    session=s;
+    sessionId=s.sessionId;
+    // Canonicalize the static prototype URL after the admission token has been
+    // exchanged. This makes refresh/back behavior session-scoped.
+    try{ history.replaceState(null, '', 'detail.html?sessionId='+encodeURIComponent(s.sessionId)); }catch(e){}
+    document.getElementById('loading').style.display='none';
+    document.getElementById('content').style.display='';
+    document.getElementById('quotaTxt').textContent = s.maxSelectable+' tiket per NIK';
+    // If the session already carries buyer data (e.g. restored after refresh),
+    // we can't recover the plaintext NIK from a masked value — leave the field
+    // for the user to re-enter, but prefill email if present.
+    if(s.email && !buyer.email){ buyer.email=s.email; buyerEmailEl.value=s.email; }
+    validateBuyer();
+    // event header
+    API.getEvent(s.eventId).then(function(r){
+      var ev=r.data.event;
+      document.getElementById('evName').textContent=ev.name;
+      var when=new Date(ev.startsAt);
+      document.getElementById('evMeta').textContent=[ev.venue, isFinite(when)?when.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):''].filter(Boolean).join(' · ');
+      var banner=(r.data.description&&r.data.description.bannerImage)||r.data._image;
+      if(banner){ var img=document.createElement('img'); img.src=banner; img.alt=ev.name; document.getElementById('heroEv').insertBefore(img, document.getElementById('heroEv').firstChild); }
+    }).catch(function(){});
+    rows=[ newRow() ];
+    renderRows();
+    startTimer();
+    // Auto-fill AFTER rows exist, so applyProfile can re-render rows and enable
+    // the "Gunakan NIK pembeli" checkbox once the buyer NIK is filled. (guest → no-op)
+    tryAutoFill();
+  }
+
+  function fail(msg){
+    document.getElementById('loading').textContent = msg || 'Sesi tidak ditemukan.';
+    var a=document.createElement('a'); a.href='index.html'; a.textContent=' Kembali ke beranda'; a.style.color='var(--red)'; a.style.fontWeight='700';
+    document.getElementById('loading').appendChild(a);
+  }
+
+  var adm = API.storage.get('rb_admission', null);
+  var existing = API.storage.get('rb_session_full', null);
+
+  function startFromAdmission(){
+    API.createSession(adm.admissionToken).then(function(res){ eventId=res.data.eventId; hydrate(res.data); })
+      .catch(function(err){
+        var code=(err&&err.meta&&err.meta.errorCode)||'ADMISSION_TOKEN_INVALID';
+        if(code==='TURN_MISSED'){ location.href='expired.html?reason=booking'; }
+        else fail(API.messageFor(code));
+      });
+  }
+
+  if(adm){
+    // A fresh admission token means the user JUST claimed a turn — always start a
+    // new session from it (takes precedence over any stale restored session).
+    startFromAdmission();
+  } else if(existing && (!sessionId || existing.sessionId===sessionId) && (!eventId || existing.eventId===eventId)){
+    // True refresh/back (no new admission) → restore the SAME session so the
+    // timer stays consistent.
+    eventId=existing.eventId;
+    sessionId=existing.sessionId;
+    API.getCurrentSession(eventId).then(function(res){ hydrate(res.data); })
+      .catch(function(err){
+        var code=(err&&err.meta&&err.meta.errorCode)||'NOT_FOUND';
+        // Stale/expired restored session with no admission to fall back on.
+        if(code==='SESSION_EXPIRED'){ location.href='expired.html?reason=booking&sessionId='+encodeURIComponent(existing.sessionId); }
+        else fail(API.messageFor(code));
+      });
+  } else {
+    fail('Belum ada sesi. Mulai dari antrean dulu.');
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pembayaran — Rusuh Tiket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--red:#EC1C24;--ember:#ff5a2d;--ink:#0a0a0c;--paper:#fbfbfd;--card:#fff;--muted:#6b6b76;--line:rgba(10,10,12,.09);--ok:#17a34a;--ease:cubic-bezier(.32,.72,0,1)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+  button{font:inherit;cursor:pointer}
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(251,251,253,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+  .topbar .in{max-width:620px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+  .back{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--muted);background:none;border:none}
+  .timer{display:inline-flex;align-items:center;gap:9px;background:rgba(236,28,36,.08);border:1px solid rgba(236,28,36,.22);color:var(--red);border-radius:999px;padding:8px 15px;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+  .timer .ic{width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .timer.warn{background:rgba(236,28,36,.16);animation:shake .4s ease}
+  @keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+
+  .wrap{max-width:620px;margin:0 auto;padding:24px 20px 170px}
+  .banner{display:flex;align-items:center;gap:10px;background:rgba(23,163,74,.08);border:1px solid rgba(23,163,74,.22);color:#0f7a37;border-radius:14px;padding:12px 15px;font-size:13px;font-weight:600;margin-bottom:20px}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:7px;margin-bottom:16px;box-shadow:0 20px 50px -34px rgba(10,10,12,.3)}
+  .panel .core{padding:18px}
+  .panel .ttl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:14px}
+  .ord .nm{font-weight:800;font-size:16px}
+  .ord .sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .line{display:flex;justify-content:space-between;font-size:14px;padding:10px 0;border-top:1px solid var(--line)}
+  .line:first-of-type{margin-top:14px}
+  .line .k{color:var(--muted)}
+  .line.total{font-weight:800;font-size:18px}
+  .line.total .v{color:var(--red)}
+
+  .pm{display:flex;align-items:center;gap:13px;padding:14px 15px;border:1.5px solid var(--line);border-radius:15px;margin-bottom:10px;transition:border-color .3s,box-shadow .3s;width:100%;background:#fff;text-align:left}
+  .pm.sel{border-color:var(--red);box-shadow:0 0 0 4px rgba(236,28,36,.08)}
+  .pm .ic{width:44px;height:30px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:800;background:rgba(10,10,12,.05);flex-shrink:0;letter-spacing:-.02em}
+  .pm .nm{font-weight:700;font-size:15px;flex:1}
+  .pm .nm small{display:block;font-weight:500;font-size:12px;color:var(--muted);margin-top:2px}
+  .pm .radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);position:relative}
+  .pm.sel .radio{border-color:var(--red)}
+  .pm.sel .radio::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--red)}
+
+  /* instruction */
+  .instr{display:none;margin-top:4px}
+  .instr.show{display:block}
+  .vabox{background:rgba(10,10,12,.04);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+  .vabox .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  .vabox .num{font-size:24px;font-weight:800;letter-spacing:.06em;margin-top:6px;font-variant-numeric:tabular-nums}
+  .vabox .bank{font-size:12px;color:var(--muted);margin-top:4px}
+  .copy{margin-top:12px;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:700;font-size:12px}
+  .qrbox{text-align:center}
+  .qrimg{width:180px;height:180px;margin:8px auto 0;border-radius:14px;border:6px solid #fff;box-shadow:0 0 0 1px rgba(10,10,12,.1);background:repeating-linear-gradient(90deg,#0a0a0c 0 6px,#fff 6px 12px),repeating-linear-gradient(0deg,rgba(10,10,12,.06) 0 6px,transparent 6px 12px);background-blend-mode:multiply}
+  .qrstr{font-size:10px;color:var(--muted);word-break:break-all;margin-top:10px;font-family:monospace}
+  .deeplink{display:inline-flex;align-items:center;gap:10px;background:#00aa13;color:#fff;border:none;border-radius:999px;padding:13px 22px;font-weight:700;font-size:14px;text-decoration:none;margin-top:4px}
+  .pollnote{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);margin-top:14px;justify-content:center}
+  .pollnote .spin{width:14px;height:14px;border:2px solid rgba(10,10,12,.2);border-top-color:var(--ink)}
+  .snapbox{background:rgba(236,28,36,.06);border:1px solid rgba(236,28,36,.18);border-radius:16px;padding:16px;text-align:center}
+  .snapbox strong{display:block;font-size:15px}
+  .snapbox p{font-size:12px;color:var(--muted);line-height:1.5;margin-top:6px}
+  .snapbox a{display:inline-flex;margin-top:14px;background:var(--red);color:#fff;border-radius:999px;padding:11px 18px;font-size:13px;font-weight:800}
+
+  .note{font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px;padding:0 4px}
+
+  .checkout{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(18px);border-top:1px solid var(--line);padding:16px 20px calc(16px + env(safe-area-inset-bottom))}
+  .checkout .in{max-width:620px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .checkout .total .t{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .checkout .total .v{font-size:22px;font-weight:800}
+  .cta{display:inline-flex;align-items:center;gap:12px;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:15px 12px 15px 26px;font-weight:700;font-size:15px;transition:transform .4s var(--ease),opacity .3s}
+  .cta:active{transform:scale(.97)}
+  .cta:disabled{opacity:.45;cursor:not-allowed}
+  .cta .pin{width:32px;height:32px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-size:14px}
+  .spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);z-index:60;background:var(--ink);color:#fff;padding:14px 20px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;transition:opacity .4s,transform .4s var(--ease);max-width:90%;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .loading-full{text-align:center;color:var(--muted);padding:50px 0}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="in">
+    <button class="back" onclick="history.length>1?history.back():location.href='index.html'">← Kembali</button>
+    <div class="timer" id="timer"><span class="ic"></span><span id="tval">--:--</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="loading-full" id="loading">Memuat halaman pembayaran…</div>
+
+  <div id="content" style="display:none">
+    <div class="banner">🔒 Stok kamu sudah di-hold. Selesaikan pembayaran sebelum waktu habis.</div>
+
+    <div class="panel"><div class="core">
+      <div class="ttl">Ringkasan Pesanan</div>
+      <div class="ord"><div class="nm" id="ordName">—</div><div class="sub" id="ordSub"></div></div>
+      <div id="ordLines"></div>
+      <!-- NOTE: NO "biaya layanan" line — PDF requirement: tanpa biaya tersembunyi.
+           Total == amountMinor dari server, apa adanya. -->
+      <div class="line total"><span>Total</span><span class="v" id="ordTotal">Rp 0</span></div>
+    </div></div>
+
+    <div class="panel"><div class="core">
+      <div class="ttl">Metode Pembayaran</div>
+      <div id="pms"></div>
+      <!-- instruction area filled after an attempt is created -->
+      <div class="instr" id="instr"></div>
+    </div></div>
+
+    <!-- WebView block: on mobile, the app calls POST /payments/{bookingId}/page-tokens
+         to get a one-time pageToken + pageUrl, opens pageUrl in a WebView, then the
+         page calls POST /payment-page-sessions {pageToken} to set the rb_pay cookie
+         and REUSES this exact payment page. Timer stays server-authoritative, so a
+         refresh or app switch never resets it. (Prototype: see API.createPageToken.) -->
+    <p class="note">💡 Halaman ini dipakai bersama web &amp; aplikasi mobile (WebView via page-token). Timer dihitung dari <code>paymentExpiresAt</code> + <code>serverTime</code>, jadi refresh/pindah app tidak mereset waktu. Callback gateway idempoten — tanpa double-charge.</p>
+  </div>
+</div>
+
+<div class="checkout">
+  <div class="in">
+    <div class="total"><div class="t">Total Bayar</div><div class="v" id="payTotal">Rp 0</div></div>
+    <button class="cta" id="pay" disabled>Bayar Sekarang <span class="pin">↗</span></button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="api.js"></script>
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function qs(k){ return new URLSearchParams(location.search).get(k); }
+  var bookingId = qs('bookingId') || (API.storage.get('rb_booking',{})||{}).bookingId;
+
+  var page=null, selected=null, attempt=null, timerInt=null, statusPoll=null, paying=false;
+  var methodLabels = {
+    VA_BCA:  {ic:'BCA', nm:'Virtual Account BCA', sub:'Transfer via ATM / m-banking BCA'},
+    VA_BNI:  {ic:'BNI', nm:'Virtual Account BNI', sub:'Transfer via ATM / m-banking BNI'},
+    VA_BRI:  {ic:'BRI', nm:'Virtual Account BRI', sub:'Transfer via ATM / m-banking BRI'},
+    VA_PERMATA:{ic:'PRM', nm:'Virtual Account Permata', sub:'Transfer via ATM / m-banking Permata'},
+    QRIS:    {ic:'QR',  nm:'QRIS', sub:'Scan dari semua e-wallet & m-banking'},
+    GOPAY:   {ic:'GP',  nm:'GoPay', sub:'Bayar via aplikasi Gojek'}
+  };
+
+  var loading=document.getElementById('loading'), content=document.getElementById('content'),
+      pmsEl=document.getElementById('pms'), instrEl=document.getElementById('instr'),
+      payBtn=document.getElementById('pay'), toast=document.getElementById('toast'),
+      tEl=document.getElementById('tval'), tBox=document.getElementById('timer');
+
+  function showToast(m){ toast.textContent=m; toast.classList.add('show'); setTimeout(function(){toast.classList.remove('show');},4200); }
+
+  function renderMethods(){
+    pmsEl.innerHTML = page.methods.map(function(m){
+      var meta=methodLabels[m]||{ic:'?',nm:m,sub:''};
+      return '<button type="button" class="pm '+(m===selected?'sel':'')+'" data-m="'+m+'">'
+        +'<div class="ic">'+meta.ic+'</div><div class="nm">'+meta.nm+'<small>'+meta.sub+'</small></div><div class="radio"></div></button>';
+    }).join('');
+    pmsEl.querySelectorAll('.pm').forEach(function(b){
+      b.addEventListener('click', function(){ if(paying) return; selected=b.dataset.m; renderMethods(); payBtn.disabled=false; });
+    });
+  }
+
+  function renderSummary(){
+    var b=page._booking||{};
+    document.getElementById('ordName').textContent = (b._eventName)||'Pesanan '+(b.publicRef||'');
+    document.getElementById('ordSub').textContent = (b.publicRef?('Ref '+b.publicRef):'') ;
+    var lines=(b.items||[]).map(function(it){
+      return '<div class="line"><span class="k">'+(it.categoryName||it.categoryCode||'Tiket')+' · '+it.attendeeName+'</span><span>'+it.attendeeNikMasked+'</span></div>';
+    }).join('');
+    document.getElementById('ordLines').innerHTML=lines;
+    document.getElementById('ordTotal').textContent=API.minorToIDR(page.amountMinor);
+    document.getElementById('payTotal').textContent=API.minorToIDR(page.amountMinor);
+  }
+
+  // SNAP owns the payment UI. The prototype uses snap.html as a local
+  // third-party simulation; production receives a real SNAP redirectUrl from BE.
+  function renderSnapRedirect(att){
+    attempt=att;
+    var html='<div class="snapbox"><strong>Melanjutkan ke SNAP</strong>'
+      +'<p>Kamu akan menyelesaikan pembayaran di halaman payment gateway. Setelah selesai, SNAP akan mengembalikanmu ke halaman hasil Rusuh Tiket.</p>'
+      +(att.redirectUrl?'<a href="'+att.redirectUrl+'">Buka SNAP ↗</a>':'')+'</div>';
+    instrEl.innerHTML=html; instrEl.classList.add('show');
+  }
+
+  // ---- Bayar → createAttempt (Idempotency-Key) → redirect to SNAP ----
+  payBtn.addEventListener('click', function(){
+    if(payBtn.disabled||!selected) return;
+    if(paying){ if(attempt && attempt.redirectUrl) location.href=attempt.redirectUrl; return; }
+    paying=true; payBtn.disabled=true; var original=payBtn.innerHTML;
+    payBtn.innerHTML='<span class="spin"></span> Memproses…';
+    var idem=API.idempotencyKey('attempt-'+bookingId+'-'+selected);
+
+    API.createAttempt(bookingId, selected, idem).then(function(res){
+      renderSnapRedirect(res.data);
+      payBtn.innerHTML='Kembali ke SNAP ↗';
+      API.notify('PAYMENT_STARTED', {bookingId:bookingId, method:selected});
+      // The provider callback returns to success/failed pages. Do not mark a
+      // payment paid from this browser page.
+      if(res.data.redirectUrl) location.href=res.data.redirectUrl;
+    }).catch(function(err){
+      paying=false; payBtn.innerHTML=original; payBtn.disabled=false;
+      var code=(err&&err.meta&&err.meta.errorCode)||'UNKNOWN';
+      if(code==='BOOKING_NOT_PAYABLE'){ location.href='expired.html?bookingId='+encodeURIComponent(bookingId)+'&reason=payment'; return; }
+      showToast(API.messageFor(code));
+    });
+  });
+
+  function routeFromStatus(d){
+    if(d.bookingStatus==='PAID') return 'success.html?bookingId='+encodeURIComponent(bookingId)+'&orderId='+encodeURIComponent(d.orderId||'');
+    if(d.bookingStatus==='EXPIRED') return 'expired.html?bookingId='+encodeURIComponent(bookingId)+'&reason=payment';
+    if(d.attempt && d.attempt.status==='FAILED') return 'expired.html?bookingId='+encodeURIComponent(bookingId)+'&reason=payment-failed';
+    return null;
+  }
+
+  function confirmFinalStatus(){
+    API.getPaymentStatus(bookingId).then(function(res){
+      var d=res.data||{}, route=routeFromStatus(d);
+      if(route){ location.href=route; return; }
+      // If the server has passed the absolute payment deadline but has not yet
+      // projected the terminal status, keep the user informed rather than
+      // trusting the browser timer.
+      if(d.serverTime && page.paymentExpiresAt && new Date(d.serverTime).getTime()>=new Date(page.paymentExpiresAt).getTime()){
+        location.href='expired.html?bookingId='+encodeURIComponent(bookingId)+'&reason=payment';
+        return;
+      }
+      showToast('Status pembayaran sedang dikonfirmasi.');
+    }).catch(function(){ showToast('Status pembayaran belum dapat dikonfirmasi. Coba lagi.'); });
+  }
+
+  // ---- server-authoritative 10-min timer from paymentExpiresAt + serverTime ----
+  function startTimer(){
+    function tick(){
+      var rem=Math.round(API.remainingMs(page.paymentExpiresAt)/1000);
+      if(rem<0) rem=0;
+      var m=Math.floor(rem/60), s=rem%60;
+      tEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+      if(rem<=120) tBox.classList.add('warn');
+      if(rem<=0){ if(timerInt) clearInterval(timerInt); if(statusPoll) clearInterval(statusPoll); confirmFinalStatus(); }
+    }
+    tick(); timerInt=reduce?null:setInterval(tick,1000);
+  }
+
+  // ---- boot ----
+  if(!bookingId){
+    loading.innerHTML='Tidak ada pesanan untuk dibayar. <a href="index.html" style="color:var(--red);font-weight:700">Ke beranda</a>';
+  } else {
+    API.getPaymentPage(bookingId).then(function(res){
+      page=res.data;
+      // enrich booking summary with event name
+      var b=page._booking;
+      if(b){
+        var bk=API.storage.get('rb_booking',null);
+        if(bk){ API.getEvent(bk.eventId).then(function(r){ b._eventName=r.data.event.name; document.getElementById('ordName').textContent=r.data.event.name; }).catch(function(){}); }
+      }
+      selected = page.methods[0];
+      loading.style.display='none'; content.style.display='';
+      renderSummary(); renderMethods(); startTimer();
+      payBtn.disabled=false;
+      // If an attempt already exists (refresh after starting payment), restore it + poll.
+      if(page.currentAttempt && page.currentAttempt.status==='PENDING'){
+        selected=page.currentAttempt.method; renderMethods();
+        renderSnapRedirect(page.currentAttempt); paying=true; payBtn.disabled=false; payBtn.innerHTML='Kembali ke SNAP ↗';
+      }
+    }).catch(function(err){
+      var code=(err&&err.meta&&err.meta.errorCode)||'UNKNOWN';
+      if(code==='BOOKING_NOT_PAYABLE'){ location.href='expired.html?bookingId='+encodeURIComponent(bookingId)+'&reason=payment'; return; }
+      loading.innerHTML=API.messageFor(code)+' <a href="index.html" style="color:var(--red);font-weight:700">Ke beranda</a>';
+    });
+  }
+})();
+</script>
+</body>
+</html>

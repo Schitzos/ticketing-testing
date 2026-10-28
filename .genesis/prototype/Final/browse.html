@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hasil Filter — Rusuh Tiket (V5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --red:#EC1C24; --red-deep:#a8111b; --ember:#ff5a2d;
+    --ink:#0a0a0c; --ink-2:#121217; --paper:#fbfbfd; --card:#ffffff;
+    --muted:#6b6b76; --line:rgba(10,10,12,.08); --ok:#17a34a; --warn:#e8830c;
+    --ease:cubic-bezier(.32,.72,0,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+  img{display:block;max-width:100%}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+  .nav{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:22px;padding:14px 20px;background:rgba(255,255,255,.82);backdrop-filter:blur(18px) saturate(1.3);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em;font-size:15px}
+  .brand .mk{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--ember),var(--red));display:grid;place-items:center;color:#fff;font-size:13px}
+  .nav .back{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--muted);padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:#fff;transition:all .3s var(--ease)}
+  .nav .back:hover{color:var(--ink);background:rgba(10,10,12,.05)}
+
+  .head{padding:40px 0 10px}
+  .head .tag{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:6px 13px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:var(--red);background:rgba(236,28,36,.08);border:1px solid rgba(236,28,36,.18)}
+  .head h1{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-.03em;margin-top:12px}
+  .head p{color:var(--muted);font-size:14px;margin-top:8px}
+
+  /* active filter summary chips */
+  .active-chips{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px}
+  .active-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:9px 14px;font:600 12px inherit}
+  .active-chip b{color:var(--red)}
+  .active-chip .x{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:none;background:rgba(10,10,12,.08);color:var(--muted);font:700 12px inherit;line-height:1;cursor:pointer;padding:0;transition:all .25s var(--ease)}
+  .active-chip .x:hover{background:var(--red);color:#fff}
+  .active-chip.is-default{opacity:.65}
+  .filter-open{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:999px;padding:9px 16px;font:700 12px inherit;cursor:pointer;transition:transform .3s var(--ease)}
+  .filter-open:active{transform:scale(.96)}
+  .filter-reset{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:9px 16px;font:700 12px inherit;cursor:pointer;transition:all .3s var(--ease)}
+  .filter-reset:hover{color:var(--red);border-color:rgba(236,28,36,.4)}
+  .filter-reset:active{transform:scale(.96)}
+
+  .section{padding:26px 0 80px}
+  .countline{font-size:13px;color:var(--muted);margin-bottom:18px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:620px){.grid{grid-template-columns:1fr}}
+  .card{background:rgba(10,10,12,.03);border:1px solid var(--line);border-radius:26px;padding:7px;transition:transform .5s var(--ease),box-shadow .5s var(--ease)}
+  .card:hover{transform:translateY(-6px);box-shadow:0 30px 60px -28px rgba(10,10,12,.3)}
+  .card .thumb{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:4/3}
+  .card .thumb img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease)}
+  .card:hover .thumb img{transform:scale(1.07)}
+  .card .thumb .badge{position:absolute;top:12px;left:12px;z-index:2;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 11px;border-radius:999px;backdrop-filter:blur(10px);color:#fff;display:inline-flex;align-items:center;gap:6px}
+  .b-ok{background:rgba(23,163,74,.85)}
+  .b-low{background:rgba(232,131,12,.9)}
+  .b-soldout{background:rgba(10,10,12,.72)}
+  .b-done{background:rgba(10,10,12,.72)}
+  .card .thumb .pricetag{position:absolute;bottom:12px;right:12px;z-index:2;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);color:var(--ink);font-weight:800;font-size:13px;padding:7px 12px;border-radius:999px}
+  .card .body{padding:16px 13px 13px}
+  .card .body h3{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .card .body .loc{color:var(--muted);font-size:13px;margin-top:6px;display:flex;align-items:center;gap:7px}
+  .card .body .evdate{color:var(--muted);font-size:12.5px;margin-top:8px;display:flex;align-items:center;gap:7px;font-weight:600;font-variant-numeric:tabular-nums}
+  .card .foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .card .foot .qty{font-size:12px;font-weight:600;color:var(--muted)}
+  .card .foot .qty b{color:var(--ink)}
+  .card .foot .go{width:36px;height:36px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:15px;transition:transform .4s var(--ease),background .4s var(--ease)}
+  .card:hover .foot .go{transform:translateX(3px);background:var(--red)}
+  .card.sold{opacity:.62;filter:saturate(.5)}
+  .card.sold:hover{transform:none;box-shadow:none}
+  .card.sold .foot .go{background:rgba(10,10,12,.3)}
+
+  .empty-state{display:none;padding:40px;border:1px dashed var(--line);border-radius:20px;color:var(--muted);text-align:center}
+  .empty-state h3{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:8px}
+  .empty-state a{color:var(--red);font-weight:700}
+
+  .skel{background:rgba(10,10,12,.03);border:1px solid var(--line);border-radius:26px;padding:7px;overflow:hidden}
+  .skel .sk-thumb{aspect-ratio:4/3;border-radius:20px;background:linear-gradient(100deg,#eee 30%,#f6f6f6 50%,#eee 70%);background-size:200% 100%;animation:sheen 1.3s infinite}
+  .skel .sk-line{height:14px;border-radius:7px;margin:14px 13px 0;background:linear-gradient(100deg,#eee 30%,#f6f6f6 50%,#eee 70%);background-size:200% 100%;animation:sheen 1.3s infinite}
+  .skel .sk-line.short{width:55%}
+  @keyframes sheen{to{background-position:-200% 0}}
+
+  /* filter popup (same as index) */
+  .ff-back{position:fixed;inset:0;z-index:90;background:rgba(5,5,7,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
+  .ff-back.show{display:flex}
+  .ff{width:100%;max-width:440px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 40px 90px -30px rgba(10,10,12,.5);max-height:88dvh;overflow:auto}
+  .ff h3{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .ff .sub{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .ff .fld{margin-top:16px}
+  .ff label{display:block;font-size:12px;font-weight:700;margin-bottom:7px}
+  .ff select{width:100%;font:inherit;font-size:14px;font-weight:600;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b76' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+  .ff select:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 4px rgba(236,28,36,.08)}
+  .ff-actions{display:flex;gap:10px;margin-top:22px}
+  .ff-actions .ghost{flex:0 0 auto;background:rgba(10,10,12,.05);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:13px 18px;font:600 14px inherit;cursor:pointer}
+  .ff-actions .go{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:13px;font:700 14px inherit;cursor:pointer}
+  .ff-actions .go .pin{width:24px;height:24px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-size:12px}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="index.html"><span class="mk">▶</span> Rusuh&nbsp;Tiket</a>
+  <a class="back" href="index.html">← Kembali ke Beranda</a>
+</nav>
+
+<header class="head">
+  <div class="wrap">
+    <span class="tag">● Hasil Filter</span>
+    <h1>Event Terfilter</h1>
+    <p>Menampilkan event mendatang sesuai filter yang kamu pilih.</p>
+    <div class="active-chips" id="activeChips"></div>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="countline" id="countLine">Memuat…</div>
+    <div class="grid" id="grid"></div>
+    <div class="empty-state" id="emptyState">
+      <h3>Tidak ada event yang cocok</h3>
+      <p>Coba ubah filter genre, lokasi, atau waktu — atau <a href="index.html">kembali ke beranda</a>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FILTER POPUP (refine in place → re-navigate with new query) -->
+<div class="ff-back" id="ffBack" role="dialog" aria-modal="true" aria-labelledby="ffTitle">
+  <form class="ff" id="ffForm">
+    <h3 id="ffTitle">Filter Event</h3>
+    <p class="sub">Ubah filter untuk memperbarui hasil.</p>
+    <div class="fld">
+      <label for="ffGenre">Genre Musik</label>
+      <select id="ffGenre" name="genre">
+        <option value="all">Semua genre</option>
+        <option value="Festival">Festival</option>
+        <option value="Jazz">Jazz</option>
+        <option value="Rock">Rock</option>
+        <option value="Elektronik">Elektronik</option>
+        <option value="Folk">Folk</option>
+        <option value="Orkestra">Orkestra</option>
+        <option value="Etc">Etc (lainnya)</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label for="ffProvince">Lokasi (Provinsi)</label>
+      <select id="ffProvince" name="province"><option value="all">Semua provinsi</option></select>
+    </div>
+    <div class="fld">
+      <label for="ffTime">Waktu</label>
+      <select id="ffTime" name="time">
+        <option value="all">Semua waktu</option>
+        <option value="week">Minggu ini</option>
+        <option value="month">Bulan ini</option>
+        <option value="quarter">3 Bulan ke depan</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label for="ffSort">Urutkan</label>
+      <select id="ffSort" name="sort">
+        <option value="closest">Terdekat dari hari ini</option>
+        <option value="furthest">Terjauh</option>
+      </select>
+    </div>
+    <div class="ff-actions">
+      <button class="ghost" type="button" id="ffReset">Reset</button>
+      <button class="ghost" type="button" id="ffCancel">Batal</button>
+      <button class="go" type="submit" id="ffSubmit">Terapkan Filter <span class="pin">↗</span></button>
+    </div>
+  </form>
+</div>
+
+<script src="api.js"></script>
+<script>
+(function(){
+  var grid=document.getElementById('grid'), emptyState=document.getElementById('emptyState'),
+      countLine=document.getElementById('countLine'), activeChips=document.getElementById('activeChips');
+
+  // ---- read filter query ----
+  var qp=new URLSearchParams(location.search);
+  var F={
+    genre: qp.get('genre')||'all',
+    province: qp.get('province')||'all',
+    time: qp.get('time')||'all',
+    sort: qp.get('sort')||'closest'
+  };
+
+  // URL values are user-controlled. Normalize unknown values to the safe
+  // defaults instead of turning a typo/tampered URL into a false empty state.
+  var validGenres=['all','Festival','Jazz','Rock','Elektronik','Folk','Orkestra','Etc'];
+  var validTimes=['all','week','month','quarter'];
+  var validSorts=['closest','furthest'];
+  var validProvinces=(API.PROVINCES||[]).map(function(p){ return p.id; });
+  var filterWasInvalid = false;
+  if(validGenres.indexOf(F.genre)<0){ F.genre='all'; filterWasInvalid=true; }
+  if(validProvinces.indexOf(F.province)<0 && F.province!=='all'){ F.province='all'; filterWasInvalid=true; }
+  if(validTimes.indexOf(F.time)<0){ F.time='all'; filterWasInvalid=true; }
+  if(validSorts.indexOf(F.sort)<0){ F.sort='closest'; filterWasInvalid=true; }
+  if(filterWasInvalid){
+    var normalizedQuery=new URLSearchParams({genre:F.genre,province:F.province,time:F.time,sort:F.sort});
+    try{ history.replaceState(null,'','browse.html?'+normalizedQuery.toString()); }catch(e){}
+  }
+
+  // ---- date helpers (mirror index.html) ----
+  var ID_MONTHS=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  function fmtDateID(iso){ var d=new Date(iso); if(!isFinite(d)) return ''; var dd=d.getDate(); if(dd<10) dd='0'+dd; return dd+'-'+ID_MONTHS[d.getMonth()]+'-'+d.getFullYear(); }
+  function isPast(ev){ if(ev.status==='CLOSED') return true; var t=new Date(ev.startsAt).getTime(); return isFinite(t)&&t<API.serverNow(); }
+
+  var LOW_STOCK=200;
+  function statusMeta(ev){
+    var rt=Number(ev.remainingTickets||0);
+    if(ev.status==='SOLD_OUT'||(rt<=0&&ev.status!=='NOT_STARTED')) return {cls:'b-soldout',label:'Sold Out',sold:true};
+    if(ev.status==='CLOSED') return {cls:'b-done',label:'Selesai',sold:true};
+    if(rt>0&&rt<LOW_STOCK) return {cls:'b-low',label:'Stok Menipis',sold:false};
+    return {cls:'b-ok',label:'Tersedia',sold:false};
+  }
+  function priceLabel(ev){ return ev.status==='SOLD_OUT'?'—':API.minorToIDR(ev.minPriceMinor,{compact:true}); }
+  function img(ev){ return ev._image||'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&q=80&auto=format&fit=crop'; }
+
+  function cardHtml(ev){
+    var m=statusMeta(ev), dateTxt=fmtDateID(ev.startsAt), rt=Number(ev.remainingTickets||0);
+    var qtyHtml=m.sold?'<span class="qty">—</span>':'<span class="qty"><b>'+rt.toLocaleString('id-ID')+'</b> tiket tersedia</span>';
+    return '<article class="card '+(m.sold?'sold':'')+'" data-id="'+ev.eventId+'" '+(m.sold?'aria-disabled="true"':'role="button" tabindex="0"')+'>'
+      +'<div class="thumb"><span class="badge '+m.cls+'">'+m.label+'</span>'
+      +(ev.status==='SOLD_OUT'?'':'<span class="pricetag">'+priceLabel(ev)+'</span>')
+      +'<img loading="lazy" src="'+img(ev)+'" alt="'+ev.name+'"></div>'
+      +'<div class="body"><h3>'+ev.name+'</h3><div class="loc">📍 '+(ev.venue||'')+'</div>'
+      +(dateTxt?'<div class="evdate">🗓 '+dateTxt+'</div>':'')
+      +'<div class="foot">'+qtyHtml+'<span class="go">'+(m.sold?'✕':'↗')+'</span></div></div></article>';
+  }
+  function wireCards(){
+    grid.querySelectorAll('.card:not(.sold)').forEach(function(card){
+      function open(){ location.href='event.html?eventId='+encodeURIComponent(card.dataset.id); }
+      card.addEventListener('click',open);
+      card.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } });
+    });
+  }
+
+  // ---- time bucket test (against server-now) ----
+  function inTimeBucket(ev){
+    if(F.time==='all') return true;
+    var now=API.serverNow(), t=new Date(ev.startsAt).getTime();
+    if(!isFinite(t)) return false;
+    var DAY=86400000;
+    if(F.time==='week')   return t>=now && t<=now+7*DAY;
+    if(F.time==='month')  return t>=now && t<=now+30*DAY;
+    if(F.time==='quarter')return t>=now && t<=now+90*DAY;
+    return true;
+  }
+
+  // ---- active-filter summary chips ----
+  function provinceName(id){
+    var list=(API.PROVINCES||[]); for(var i=0;i<list.length;i++) if(list[i].id===id) return list[i].name;
+    return id;
+  }
+  var TIME_LABEL={all:'Semua waktu',week:'Minggu ini',month:'Bulan ini',quarter:'3 Bulan ke depan'};
+  var SORT_LABEL={closest:'Terdekat',furthest:'Terjauh'};
+  function renderActiveChips(){
+    // Each active (non-default) filter renders as a removable chip. Clicking its
+    // ✕ clears just that one dimension and re-navigates with the updated query.
+    var defs={genre:'all', province:'all', time:'all', sort:'closest'};
+    var chips=[];
+    function chip(key,label,value){
+      var isDefault = F[key]===defs[key];
+      var x = isDefault ? '' : '<button class="x" type="button" data-clear="'+key+'" aria-label="Hapus filter '+label+'">✕</button>';
+      return '<span class="active-chip'+(isDefault?' is-default':'')+'">'+label+': <b>'+value+'</b>'+x+'</span>';
+    }
+    chips.push(chip('genre','Genre', F.genre==='all'?'Semua':F.genre));
+    chips.push(chip('province','Lokasi', F.province==='all'?'Semua':provinceName(F.province)));
+    chips.push(chip('time','Waktu', TIME_LABEL[F.time]||'Semua waktu'));
+    chips.push(chip('sort','Urut', SORT_LABEL[F.sort]||'Terdekat'));
+    chips.push('<button class="filter-open" type="button" id="refineBtn">⛃ Ubah Filter</button>');
+    var isFiltered = F.genre!=='all' || F.province!=='all' || F.time!=='all' || F.sort!=='closest';
+    if(isFiltered) chips.push('<button class="filter-reset" type="button" id="resetBtn">↺ Reset Filter</button>');
+    activeChips.innerHTML=chips.join('');
+    document.getElementById('refineBtn').addEventListener('click',openFilter);
+    var rb=document.getElementById('resetBtn');
+    if(rb) rb.addEventListener('click',resetFilters);
+    // wire per-chip clear buttons
+    activeChips.querySelectorAll('[data-clear]').forEach(function(b){
+      b.addEventListener('click', function(){ clearOne(b.dataset.clear); });
+    });
+  }
+
+  // Clear a single filter back to its default, keep the rest, and re-navigate.
+  function clearOne(key){
+    var defs={genre:'all', province:'all', time:'all', sort:'closest'};
+    var next={genre:F.genre, province:F.province, time:F.time, sort:F.sort};
+    next[key]=defs[key];
+    location.href='browse.html?'+new URLSearchParams(next).toString();
+  }
+
+  // Reset = go to the default unfiltered view (all genres/provinces/time, closest sort).
+  function resetFilters(){ location.href='browse.html'; }
+
+  // ---- popup (refine → re-navigate) ----
+  var ffBack=document.getElementById('ffBack'), ffForm=document.getElementById('ffForm'),
+      ffCancel=document.getElementById('ffCancel'), ffProvince=document.getElementById('ffProvince'), ffLastFocus=null;
+  (function fillProvinces(){
+    var list=(API.PROVINCES||[]);
+    list.forEach(function(p){ var o=document.createElement('option'); o.value=p.id; o.textContent=p.name; ffProvince.appendChild(o); });
+  })();
+  function preselect(){
+    document.getElementById('ffGenre').value=F.genre;
+    document.getElementById('ffProvince').value=F.province;
+    document.getElementById('ffTime').value=F.time;
+    document.getElementById('ffSort').value=F.sort;
+  }
+  function openFilter(){ ffLastFocus=document.activeElement; preselect(); ffBack.classList.add('show'); setTimeout(function(){ document.getElementById('ffGenre').focus(); },50); }
+  function closeFilter(){ ffBack.classList.remove('show'); if(ffLastFocus) ffLastFocus.focus(); }
+  function trapFocus(e){
+    if(e.key!=='Tab' || !ffBack.classList.contains('show')) return;
+    var focusables=[].slice.call(ffBack.querySelectorAll('button,select,input,[href],[tabindex]:not([tabindex="-1"])')).filter(function(el){ return !el.disabled && el.offsetParent!==null; });
+    if(!focusables.length) return;
+    var first=focusables[0], last=focusables[focusables.length-1];
+    if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  }
+  ffCancel.addEventListener('click',closeFilter);
+  document.getElementById('ffReset').addEventListener('click',function(){
+    // Clear the popup selections back to defaults (does not navigate until Terapkan).
+    document.getElementById('ffGenre').value='all';
+    document.getElementById('ffProvince').value='all';
+    document.getElementById('ffTime').value='all';
+    document.getElementById('ffSort').value='closest';
+    document.getElementById('ffGenre').focus();
+  });
+  ffBack.addEventListener('click',function(e){ if(e.target===ffBack) closeFilter(); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&ffBack.classList.contains('show')) closeFilter(); else trapFocus(e); });
+  ffForm.addEventListener('submit',function(e){
+    e.preventDefault();
+    var qs=new URLSearchParams({
+      genre:document.getElementById('ffGenre').value,
+      province:document.getElementById('ffProvince').value,
+      time:document.getElementById('ffTime').value,
+      sort:document.getElementById('ffSort').value
+    });
+    location.href='browse.html?'+qs.toString();
+  });
+
+  // ---- bootstrap ----
+  renderActiveChips();
+  grid.innerHTML='<div class="skel"><div class="sk-thumb"></div><div class="sk-line"></div><div class="sk-line short"></div></div>'.repeat(3);
+
+  API.listEvents().then(function(res){
+    var events=(res&&res.data&&res.data.events)||[];
+    events.forEach(function(ev){ ev._city=API.cityOf(ev); });
+
+    // only upcoming events are eligible (past ones live in History on the home page)
+    var list=events.filter(function(ev){ return !isPast(ev); });
+
+    // apply filters
+    list=list.filter(function(ev){
+      var genreOk  = F.genre==='all'    || API.genreOf(ev)===F.genre;
+      var provOk   = F.province==='all' || API.provinceIdOf(ev)===F.province;
+      var timeOk   = inTimeBucket(ev);
+      return genreOk && provOk && timeOk;
+    });
+
+    // sort
+    list.sort(function(a,b){
+      var da=new Date(a.startsAt)-0, db=new Date(b.startsAt)-0;
+      return F.sort==='furthest' ? (db-da) : (da-db);
+    });
+
+    if(!list.length){
+      grid.innerHTML=''; countLine.textContent='0 event';
+      emptyState.style.display='block';
+      return;
+    }
+    grid.innerHTML=list.map(cardHtml).join('');
+    countLine.textContent=list.length+' event ditemukan';
+    emptyState.style.display='none';
+    wireCards();
+  }).catch(function(err){
+    grid.innerHTML=''; countLine.textContent='';
+    emptyState.querySelector('h3').textContent='Gagal memuat event';
+    emptyState.style.display='block';
+  });
+})();
+</script>
+</body>
+</html>

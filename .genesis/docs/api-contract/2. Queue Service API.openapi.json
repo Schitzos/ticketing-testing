@@ -1,0 +1,820 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "2. Queue Service API",
+    "description": "Waiting room publik. Kontrak normatif; ringkasan di SDD §4.6.1.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Tim PT. Tiket Sampai Nonton Sentosa"
+    }
+  },
+  "tags": [
+    {
+      "name": "queue"
+    },
+    {
+      "name": "ops"
+    }
+  ],
+  "paths": {
+    "/api/v1/events/{eventId}/queue-entries": {
+      "post": {
+        "summary": "Masuk antrean (guest, atau login opsional)",
+        "deprecated": false,
+        "description": "Guest: cukup NIK pembeli + email. Bila header Authorization (access token User Service) dikirim, akun dicatat di entry dan NIK harus sama dengan NIK tersimpan di akun (ADR-020). Bila tidak ada pengantre lebih awal dan slot tersedia, respons langsung ADMITTED (FR-05).",
+        "operationId": "joinQueue",
+        "tags": [
+          "queue"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "description": "Diteruskan antar service; dibuat bila kosong",
+            "required": false,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Masuk antrean (WAITING) atau langsung ADMITTED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/QueueEntry"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "Field tidak valid — errorCode: `VALIDATION_ERROR`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "409": {
+            "description": "Konflik antrean — errorCode: `NIK_ALREADY_IN_QUEUE`, `VISITOR_ALREADY_IN_QUEUE`, `EMAIL_ALREADY_IN_QUEUE`, `BUYER_QUOTA_EXHAUSTED`, `EVENT_NOT_ON_SALE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "410": {
+            "description": "Tiket habis — errorCode: `EVENT_SOLD_OUT`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "422": {
+            "description": "Input tidak valid — errorCode: `NIK_INVALID`, `EMAIL_MISMATCH`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "429": {
+            "description": "Terlalu banyak request (lihat header Retry-After) — errorCode: `RATE_LIMITED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "503": {
+            "description": "Dependency sementara tidak tersedia; ulangi dengan Idempotency-Key yang sama — errorCode: `DEPENDENCY_UNAVAILABLE`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "userBearer2": []
+          }
+        ]
+      }
+    },
+    "/api/v1/queue-status/{eventId}": {
+      "get": {
+        "summary": "Status Document (CDN, 1 detik)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getQueueStatus",
+        "tags": [
+          "queue"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status Document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusDocument"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Event tidak ada — errorCode: `NOT_FOUND`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/queue-entries/me": {
+      "get": {
+        "summary": "Posisi eksak (saat dekat giliran)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getMyEntry",
+        "tags": [
+          "queue"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "query",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/EntryStatus"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Tidak ada entry — errorCode: `NOT_FOUND`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "429": {
+            "description": "Terlalu banyak request (lihat header Retry-After) — errorCode: `RATE_LIMITED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie1": []
+          },
+          {
+            "visitorHeader1": []
+          }
+        ]
+      }
+    },
+    "/api/v1/queue-entries/{entryId}/claim": {
+      "post": {
+        "summary": "Ambil admission token saat giliran tiba",
+        "deprecated": false,
+        "description": "",
+        "operationId": "claimTurn",
+        "tags": [
+          "queue"
+        ],
+        "parameters": [
+          {
+            "name": "entryId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ClaimResponse"
+                    }
+                  },
+                  "required": [
+                    "meta",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          },
+          "410": {
+            "description": "Giliran terlewat atau tiket habis — errorCode: `TURN_MISSED`, `EVENT_SOLD_OUT`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "429": {
+            "description": "Terlalu banyak request (lihat header Retry-After) — errorCode: `RATE_LIMITED`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie1": []
+          },
+          {
+            "visitorHeader1": []
+          }
+        ]
+      }
+    },
+    "/api/v1/queue-entries/{entryId}": {
+      "delete": {
+        "summary": "Keluar dari antrean (SHOULD)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "leaveQueue",
+        "tags": [
+          "queue"
+        ],
+        "parameters": [
+          {
+            "name": "entryId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Keluar; slot tidak dipakai lagi",
+            "headers": {}
+          },
+          "404": {
+            "description": "Tidak ada entry — errorCode: `NOT_FOUND`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "visitorCookie1": []
+          },
+          {
+            "visitorHeader1": []
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health (ALB dan HEALTHCHECK container, D-23)",
+        "deprecated": false,
+        "description": "",
+        "operationId": "health",
+        "tags": [
+          "ops"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Semua dependency UP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "503": {
+            "description": "Ada dependency DOWN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "meta",
+          "data"
+        ],
+        "description": "Error envelope SRS §3.1.4. Tidak pernah memuat SQL, stack trace, secret, atau payload provider."
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "UP",
+              "DOWN"
+            ]
+          },
+          "service": {
+            "type": "string"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "UP",
+                    "DOWN"
+                  ]
+                },
+                "latencyMs": {
+                  "type": "integer"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "checkedAt",
+          "dependencies"
+        ]
+      },
+      "JoinRequest": {
+        "type": "object",
+        "properties": {
+          "buyerNik": {
+            "type": "string",
+            "pattern": "^[0-9]{16}$",
+            "description": "NIK 16 digit (dicek strukturnya; tidak pernah disimpan plaintext)"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "emailConfirmation": {
+            "type": "string",
+            "format": "email"
+          },
+          "consentNik": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "buyerNik",
+          "email",
+          "emailConfirmation",
+          "consentNik"
+        ]
+      },
+      "QueueEntry": {
+        "type": "object",
+        "properties": {
+          "entryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "WAITING",
+              "ADMITTED",
+              "CLAIMED",
+              "MISSED",
+              "LEFT",
+              "SOLD_OUT",
+              "CLOSED",
+              "COMPLETED",
+              "ENDED"
+            ]
+          },
+          "queueToken": {
+            "type": "string"
+          },
+          "visitorToken": {
+            "type": "string",
+            "description": "Hanya untuk mobile"
+          },
+          "statusUrl": {
+            "type": "string"
+          },
+          "claimDeadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "entryId",
+          "seq",
+          "status",
+          "joinedAt",
+          "serverTime"
+        ]
+      },
+      "EntryStatus": {
+        "type": "object",
+        "properties": {
+          "entryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "exactPosition": {
+            "type": "integer"
+          },
+          "zone": {
+            "type": "string",
+            "enum": [
+              "GUARANTEED",
+              "POSSIBLE",
+              "NOT_ENOUGH"
+            ]
+          },
+          "claimDeadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "redirect": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entryId",
+          "seq",
+          "status"
+        ]
+      },
+      "ClaimResponse": {
+        "type": "object",
+        "properties": {
+          "admissionToken": {
+            "type": "string",
+            "description": "Sekali pakai, TTL 60 detik"
+          },
+          "bookingUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "admissionToken",
+          "bookingUrl"
+        ]
+      },
+      "StatusDocument": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "saleState": {
+            "type": "string",
+            "enum": [
+              "NOT_STARTED",
+              "OPEN",
+              "CLOSED"
+            ]
+          },
+          "servingSeq": {
+            "type": "integer"
+          },
+          "guaranteedUntilSeq": {
+            "type": "integer"
+          },
+          "possibleUntilSeq": {
+            "type": "integer"
+          },
+          "soldOut": {
+            "type": "boolean"
+          },
+          "remainingTickets": {
+            "type": "integer"
+          },
+          "admissionRatePerMin": {
+            "type": "integer"
+          },
+          "removedBuckets": {
+            "type": "object",
+            "properties": {
+              "size": {
+                "type": "integer"
+              },
+              "fromSeq": {
+                "type": "integer"
+              },
+              "counts": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "nextPollAfterMs": {
+            "type": "integer"
+          },
+          "poll": {
+            "type": "object",
+            "properties": {
+              "farMs": {
+                "type": "integer"
+              },
+              "midMs": {
+                "type": "integer"
+              },
+              "nearMs": {
+                "type": "integer"
+              },
+              "farAbove": {
+                "type": "integer"
+              },
+              "midAbove": {
+                "type": "integer"
+              }
+            }
+          },
+          "preTurnNotifyPosition": {
+            "type": "integer"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "AVAILABLE",
+                    "LIMITED",
+                    "SOLD_OUT"
+                  ]
+                }
+              }
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "eventId",
+          "saleState",
+          "servingSeq",
+          "soldOut",
+          "updatedAt"
+        ],
+        "description": "Dokumen publik tanpa data pribadi; Cache-Control: public, max-age=1, stale-while-revalidate=2"
+      }
+    },
+    "responses": {},
+    "securitySchemes": {
+      "visitorCookie1": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "rb_visitor",
+        "description": "Visitor token web (HttpOnly, Secure, SameSite=Lax)"
+      },
+      "visitorHeader1": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Visitor-Token",
+        "description": "Visitor token mobile (secure storage)"
+      },
+      "userBearer2": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT (EdDSA)",
+        "description": "Access token User Service (login OTP, opsional)"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "",
+      "description": "Develop Env"
+    }
+  ],
+  "security": []
+}

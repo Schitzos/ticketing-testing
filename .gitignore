@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+
+# Local agent/tooling settings (per-machine, not shared)
+.kiro/
+
+# Node / Expo (for when app code lands)
+node_modules/
+.expo/
+dist/
+android/
+ios/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Env — template only is tracked
+.env
+!.env.example
+expo-env.d.ts
