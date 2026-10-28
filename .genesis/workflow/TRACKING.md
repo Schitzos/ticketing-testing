@@ -8,26 +8,32 @@
 ## Config Block
 
 ```yaml
-# Fill this for your project
+# Filled 2026-10-29
 
 project:
-  issue_prefix: "<fill>"           # e.g., "PROJ", "RBT", "TICKET"
-  
+  issue_prefix: "RBT"
+
 tracker:
-  type: "<fill>"                   # jira | github | linear | notion
-  base_url: "<fill>"               # e.g., "https://your-domain.atlassian.net"
-  board_id: "<fill>"               # optional
+  type: "github"
+  base_url: "https://github.com/tiket-sampai-nonton/rusuh-booking-mobile"
+  board_id: "1"                    # org project "Rusuh Booking FE"
 
 github:
-  owner: "<fill>"                  # e.g., "your-org"
-  repo: "<fill>"                   # e.g., "your-repo"
-  base_branch: "<fill>"            # e.g., "develop" or "main"
+  owner: "tiket-sampai-nonton"
+  repo: "rusuh-booking-mobile"
+  base_branch: "develop"           # feature → PR develop → PR main (D5.2)
 
 ci:
-  provider: "<fill>"               # github-actions | gitlab-ci | jenkins | circleci
+  provider: "github-actions"
   required_checks:
-    - "<fill>"                     # e.g., "lint", "test", "build"
+    - "typecheck"
+    - "lint"
+    - "test"
+    - "sonarcloud"
 ```
+
+> **Branch pattern:** `feature/<issue-key>-<slug>` (e.g. `feature/RBT-050-booking-timer`).
+> **Commit pattern:** Conventional Commits `<type>(<issue-key>): <message>` (e.g. `feat(RBT-050): add booking session timer`).
 
 ### Placeholder Guard
 
