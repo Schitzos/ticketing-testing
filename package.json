@@ -1,0 +1,29 @@
+{
+  "name": "rusuh-booking-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "npm run start --workspace apps/client",
+    "web": "npm run web --workspace apps/client",
+    "android": "npm run android --workspace apps/client",
+    "ios": "npm run ios --workspace apps/client",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "jest"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/react": "~19.0.0",
+    "expo": "~52.0.0",
+    "typescript": "~5.9.2"
+  },
+  "dependencies": {
+    "query-string": "^7.1.3"
+  }
+}

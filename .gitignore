@@ -15,7 +15,15 @@ ios/
 *.jks
 *.keystore
 
+# TypeScript build artifacts
+*.tsbuildinfo
+
 # Env — template only is tracked
 .env
 !.env.example
 expo-env.d.ts
+
+# Compiled TS output must go to dist/, never next to source
+packages/*/src/**/*.js
+apps/client/app/**/*.js
+apps/client/app.config.js
