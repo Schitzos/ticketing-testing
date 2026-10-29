@@ -42,20 +42,24 @@ const ALLOWLIST = new Set([
   "expo-linking",
 ]);
 
-// Resolve the npm CLI from Node's own install dir so the gate never does a
+// Resolve the npm CLI from Node's own install dir so the gate NEVER does a
 // PATH lookup for the binary it runs (S4036: no mutable-PATH command resolution).
 const nodeDir = dirname(process.execPath);
 const npmCli =
   [join(nodeDir, "node_modules/npm/bin/npm-cli.js"),
    join(nodeDir, "../lib/node_modules/npm/bin/npm-cli.js")].find(existsSync);
 
+if (!npmCli) {
+  console.error("audit-gate: could not locate npm-cli.js next to the Node runtime");
+  process.exit(1);
+}
+
 let report;
 try {
   // `npm audit --json` exits non-zero when vulns exist; capture stdout anyway.
+  // Invoked as `node <absolute npm-cli.js>` — a fixed, unwriteable path, no shell.
   const common = { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 64 * 1024 * 1024 };
-  report = npmCli
-    ? execFileSync(process.execPath, [npmCli, "audit", "--json"], common)
-    : execFileSync("npm", ["audit", "--json"], { ...common, shell: false });
+  report = execFileSync(process.execPath, [npmCli, "audit", "--json"], common);
 } catch (err) {
   report = err.stdout || "";
 }
