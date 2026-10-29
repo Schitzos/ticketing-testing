@@ -16,7 +16,7 @@
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
     "test": "jest",
-    "test:ci": "jest --ci --coverage"
+    "test:ci": "jest --ci --coverage --watchman=false"
   },
   "engines": {
     "node": ">=20"

@@ -7,7 +7,9 @@
     "start": "expo start",
     "web": "expo start --web",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "lint:ac2": "eslint --config ./eslint.config.js --no-config-lookup \"app/**/*.{ts,tsx}\"",
+    "test:ac2": "node --test __ac2_tests__/ac2-lint.test.mjs"
   },
   "dependencies": {
     "@rbt/design-tokens": "*",
