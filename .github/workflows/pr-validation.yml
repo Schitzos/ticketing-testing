@@ -1,0 +1,173 @@
+# RBT-005 — PR validation gate (GitHub Actions).
+# Source of truth: .genesis/docs/PIPELINE.md §2–§4, §12.
+# Runs ONLY the merge-blocking gates for PRs into develop/main:
+#   typecheck · lint+prettier · Jest(+RNTL,lcov) · npm audit(high) · SonarCloud
+# then STOPS. No web/native build, no OTA, no deploy, no EAS. (PIPELINE.md §3 "PRs stop at SonarCloud".)
+# e2e (Playwright/Maestro) and OpenAPI contract validation are intentionally NOT here — local/manual only (RULES.md D6.4/D6.5).
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - develop
+      - main
+
+# Cancel superseded runs on the same PR.
+concurrency:
+  group: pr-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  typecheck:
+    name: Typecheck (tsc strict)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+
+  lint:
+    name: Lint + Prettier
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run format:check
+
+  unit_test:
+    name: Jest + RNTL (coverage)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:ci
+      - name: Upload coverage (for SonarCloud)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  vulnerability_scan:
+    name: npm audit (fail on high)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # PIPELINE.md §4.5 — fail on high/critical PRODUCTION dependency vulnerabilities,
+      # EXCEPT a documented allowlist of Expo SDK 52 build/CLI-toolchain advisories that
+      # cannot be cleared without a breaking Expo major bump (tracked: RBT-006).
+      # The one controllable advisory (decode-uri-component) is fixed via package.json `overrides`.
+      # Allowlist + rationale: docs/security/SECURITY-EXCEPTIONS.md
+      - name: npm audit (production deps, level=high, documented exceptions)
+        run: node scripts/ci/audit-gate.mjs
+
+  sonarcloud:
+    name: SonarCloud quality gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # §4.6 — runs AFTER typecheck, lint, unit tests, and vulnerability scanning.
+    needs: [typecheck, lint, unit_test, vulnerability_scan]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Sonar needs full history for accurate new-code / blame attribution.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # Regenerate coverage on this runner so lcov is present for the scan.
+      - run: npm run test:ci
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402 # v4
+        env:
+          # Referenced from GitHub secrets — never committed. (AC2, PIPELINE.md §10)
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # org + projectKey come from the committed sonar-project.properties
+        # (schitzos / Schitzos_ticketing-testing). No args override needed.
+
+  # ---------------------------------------------------------------------------
+  # STUB gates — web release checks (AC3). These are PLACEHOLDERS, not real impls.
+  # Full implementation lands with RBT-033 (SEO) and RBT-081 (bundle budgets).
+  # They run on PRs so the gate shape is visible, but currently only echo intent.
+  # ---------------------------------------------------------------------------
+  web_bundle_size_stub:
+    name: 'Web bundle-size check (STUB)'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [sonarcloud]
+    steps:
+      - name: Bundle-size budget (stub)
+        run: |
+          echo "::notice title=STUB::Bundle-size check not yet implemented (RBT-081)."
+          echo "PIPELINE.md §5.1 budgets — public route <=300KB gzip, transactional <=500KB gzip."
+          echo "TODO(RBT-081): build web, measure gzip initial JS per route, fail on budget breach."
+
+  web_seo_output_stub:
+    name: 'Web SEO-output check (STUB)'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [sonarcloud]
+    steps:
+      - name: SEO output validation (stub)
+        run: |
+          echo "::notice title=STUB::SEO-output check not yet implemented (RBT-033)."
+          echo "PIPELINE.md §5.1 — reject web.output:single; verify / and /events/[eventId] emit indexable HTML,"
+          echo "canonical/OG/JSON-LD/sitemap/robots; transactional routes noindex."
+          echo "TODO(RBT-033): run 'expo export --platform web' and assert generated route HTML + metadata."
+
+  # Aggregate gate: a single required check PRs can block on.
+  validation_summary:
+    name: Validation summary
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs:
+      [
+        typecheck,
+        lint,
+        unit_test,
+        vulnerability_scan,
+        sonarcloud,
+        web_bundle_size_stub,
+        web_seo_output_stub,
+      ]
+    steps:
+      - run: echo "All PR validation gates passed. Deploy/OTA steps run only post-merge (separate workflow, not in this PR gate)."

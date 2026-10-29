@@ -18,6 +18,11 @@ ios/
 # TypeScript build artifacts
 *.tsbuildinfo
 
+# CI toolchain output / caches (RBT-005)
+coverage/
+.jestcache/
+.jesttmp/
+
 # Env — template only is tracked
 .env
 !.env.example
