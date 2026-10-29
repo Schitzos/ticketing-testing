@@ -69,7 +69,8 @@ Type: Story · P0 · L · Deps: none
 - AC1: `apps/client` Expo app boots on web, Android, iOS (dev build).
 - AC2: `packages/{domain,api-client,state,ui,design-tokens,platform,config,test-fixtures}` exist with build wiring.
 - AC3: TypeScript strict passes; path aliases resolve across packages.
-- Skills: Expo, monorepo (npm workspaces), TypeScript.
+- AC4: **README onboarding guide** — a developer on another team can go from clone to running the app with no prior context: prerequisites (Node version, npm, Expo CLI, Xcode/Android Studio or Expo Go), `git clone` + `npm install`, run on **web** (`npx expo start --web`), run on **Android emulator** and **iOS simulator** (`npx expo start` → press `a`/`i`, or Expo Go on a device), the monorepo layout (`apps/client` + `packages/*`), the env-var setup (`.env.example` → `.env`, the `EXPO_PUBLIC_*` keys incl. the mock toggle), and the common-issues/troubleshooting notes. Verified by a clean-clone dry run.
+- Skills: Expo, monorepo (npm workspaces), TypeScript, technical writing.
 
 #### RBT-002: Expo Router + route tree + layout guards
 Type: Story · P0 · M · Deps: RBT-001

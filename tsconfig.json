@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "target": "esnext",
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@rbt/domain": ["packages/domain/src"],
+      "@rbt/domain/*": ["packages/domain/src/*"],
+      "@rbt/api-client": ["packages/api-client/src"],
+      "@rbt/api-client/*": ["packages/api-client/src/*"],
+      "@rbt/state": ["packages/state/src"],
+      "@rbt/state/*": ["packages/state/src/*"],
+      "@rbt/ui": ["packages/ui/src"],
+      "@rbt/ui/*": ["packages/ui/src/*"],
+      "@rbt/design-tokens": ["packages/design-tokens/src"],
+      "@rbt/design-tokens/*": ["packages/design-tokens/src/*"],
+      "@rbt/platform": ["packages/platform/src"],
+      "@rbt/platform/*": ["packages/platform/src/*"],
+      "@rbt/config": ["packages/config/src"],
+      "@rbt/config/*": ["packages/config/src/*"],
+      "@rbt/test-fixtures": ["packages/test-fixtures/src"],
+      "@rbt/test-fixtures/*": ["packages/test-fixtures/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "**/node_modules", "dist", "**/dist", ".expo", "**/.expo"]
+}
