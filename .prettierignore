@@ -1,0 +1,26 @@
+# RBT-005 — Prettier ignore.
+# Non-source / generated / reference material:
+node_modules/
+dist/
+coverage/
+.expo/
+android/
+ios/
+.jesttmp/
+.jestcache/
+package-lock.json
+*.tsbuildinfo
+.genesis/
+docs/
+*.properties
+*.md
+
+# NOTE (ownership + concurrency): the Prettier GATE is live now for the repo root, the
+# toolchain config files, and .github/. The `apps/**` and `packages/**` trees are owned by
+# other RBT stories (RBT-001 app skeleton, RBT-002 routes, RBT-003 tokens/ui, RBT-004 DI, E2…)
+# and are NOT yet baseline-formatted to this shared .prettierrc.json. They are ignored here so
+# this CI-skeleton PR does not reformat another worker's files. Each owning story runs
+# `npm run format:write` on its package and removes its path from this ignore as it adopts the
+# gate — the shared config already applies the moment the ignore entry is dropped.
+apps/
+packages/
