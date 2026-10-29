@@ -34,7 +34,7 @@ export function PlaceholderScreen({
   route,
   params,
   noindex = false,
-}: PlaceholderScreenProps) {
+}: Readonly<PlaceholderScreenProps>) {
   const scheme = useColorScheme() ?? "light";
   const c = tokens.color[scheme];
 
