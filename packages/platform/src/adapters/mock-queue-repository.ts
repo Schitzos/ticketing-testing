@@ -27,10 +27,10 @@ export class MockQueueRepository implements QueueRepository {
     return new Date(this.clock.now()).toISOString();
   }
 
-  async join(eventId: string, _body: QueueJoinRequest): Promise<QueueEntry> {
+  join(eventId: string, _body: QueueJoinRequest): Promise<QueueEntry> {
     this.seq += 1;
     const now = this.nowIso();
-    return {
+    return Promise.resolve({
       entryId: `mock-entry-${eventId}-${this.seq}`,
       seq: this.seq,
       status: 'WAITING',
@@ -38,11 +38,11 @@ export class MockQueueRepository implements QueueRepository {
       statusUrl: `/api/v1/queue-status/${eventId}`,
       joinedAt: now,
       serverTime: now,
-    };
+    });
   }
 
-  async getStatus(eventId: string): Promise<QueueStatusDocument> {
-    return {
+  getStatus(eventId: string): Promise<QueueStatusDocument> {
+    return Promise.resolve({
       eventId,
       saleState: 'OPEN',
       servingSeq: Math.max(0, this.seq - 1),
@@ -52,27 +52,28 @@ export class MockQueueRepository implements QueueRepository {
       remainingTickets: 500,
       admissionRatePerMin: 120,
       nextPollAfterMs: 5000,
-    };
+    });
   }
 
-  async getMyEntry(_eventId: string): Promise<QueueEntryStatusDetail> {
-    return {
+  getMyEntry(_eventId: string): Promise<QueueEntryStatusDetail> {
+    return Promise.resolve({
       entryId: `mock-entry-${this.seq}`,
       seq: this.seq,
       status: 'WAITING',
       exactPosition: 1,
       zone: 'GUARANTEED',
-    };
+    });
   }
 
-  async claim(entryId: string): Promise<QueueClaimResponse> {
-    return {
+  claim(entryId: string): Promise<QueueClaimResponse> {
+    return Promise.resolve({
       admissionToken: `mock-admission-${entryId}`,
       bookingUrl: `/checkout/mock-session-${entryId}`,
-    };
+    });
   }
 
-  async leave(_entryId: string): Promise<void> {
+  leave(_entryId: string): Promise<void> {
     // no-op in the mock
+    return Promise.resolve();
   }
 }

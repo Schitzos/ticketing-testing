@@ -14,15 +14,17 @@ import type {
 export class MockNotificationPort implements NotificationPort {
   readonly subscriptions = new Map<string, PushSubscription>();
 
-  async requestPermission(): Promise<NotificationPermission> {
-    return 'granted';
+  requestPermission(): Promise<NotificationPermission> {
+    return Promise.resolve('granted');
   }
 
-  async registerSubscription(sub: PushSubscription): Promise<void> {
+  registerSubscription(sub: PushSubscription): Promise<void> {
     this.subscriptions.set(sub.eventId, sub);
+    return Promise.resolve();
   }
 
-  async removeSubscription(eventId: string): Promise<void> {
+  removeSubscription(eventId: string): Promise<void> {
     this.subscriptions.delete(eventId);
+    return Promise.resolve();
   }
 }

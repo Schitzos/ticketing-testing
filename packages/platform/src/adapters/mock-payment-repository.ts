@@ -29,25 +29,25 @@ export class MockPaymentRepository implements PaymentRepository {
     return new Date(this.clock.now() + offsetMs).toISOString();
   }
 
-  async getPage(bookingId: string): Promise<PaymentPage> {
-    return {
+  getPage(bookingId: string): Promise<PaymentPage> {
+    return Promise.resolve({
       bookingId,
       methods: ['VA_BCA', 'VA_BNI', 'VA_BRI', 'VA_PERMATA', 'QRIS', 'GOPAY'],
-      amountMinor: 350_000_00,
+      amountMinor: 35_000_000,
       paymentExpiresAt: this.iso(TEN_MINUTES_MS),
       serverTime: this.iso(),
       currentAttempt: null,
       canEdit: true,
       editableUntil: this.iso(TEN_MINUTES_MS),
-    };
+    });
   }
 
-  async createAttempt(
+  createAttempt(
     _bookingId: string,
     method: PaymentMethod,
     _idempotencyKey: string,
   ): Promise<PaymentAttempt> {
-    return {
+    return Promise.resolve({
       attemptNo: 1,
       method,
       status: 'PENDING',
@@ -55,11 +55,11 @@ export class MockPaymentRepository implements PaymentRepository {
       redirectUrl: 'https://mock-snap.local/pay',
       successReturnUrl: '/success/mock-booking',
       failedReturnUrl: '/expired/mock-booking',
-    };
+    });
   }
 
-  async getStatus(bookingId: string): Promise<PaymentStatus> {
-    return {
+  getStatus(bookingId: string): Promise<PaymentStatus> {
+    return Promise.resolve({
       bookingId,
       bookingStatus: 'PAYMENT_PENDING',
       paymentExpiresAt: this.iso(TEN_MINUTES_MS),
@@ -70,14 +70,14 @@ export class MockPaymentRepository implements PaymentRepository {
         expiresAt: this.iso(TEN_MINUTES_MS),
       },
       serverTime: this.iso(),
-    };
+    });
   }
 
-  async createPageToken(_bookingId: string): Promise<PaymentPageToken> {
-    return {
+  createPageToken(_bookingId: string): Promise<PaymentPageToken> {
+    return Promise.resolve({
       pageToken: 'mock-page-token',
       pageUrl: 'https://mock-snap.local/page',
       expiresAt: this.iso(5 * 60 * 1000),
-    };
+    });
   }
 }

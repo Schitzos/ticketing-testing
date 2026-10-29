@@ -11,12 +11,13 @@ export class MockFileSharePort implements FileSharePort {
   lastSaved?: ShareableFile;
   lastShared?: ShareableFile;
 
-  async save(file: ShareableFile): Promise<string> {
+  save(file: ShareableFile): Promise<string> {
     this.lastSaved = file;
-    return `mock://saved/${file.fileName}`;
+    return Promise.resolve(`mock://saved/${file.fileName}`);
   }
 
-  async share(file: ShareableFile): Promise<void> {
+  share(file: ShareableFile): Promise<void> {
     this.lastShared = file;
+    return Promise.resolve();
   }
 }
