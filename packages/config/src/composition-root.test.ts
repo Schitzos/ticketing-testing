@@ -128,4 +128,28 @@ describe('mock adapters are Liskov-substitutable (honor the port contract)', () 
     await expect(ports.fileSharePort.save(file)).resolves.toContain('ticket.png');
     await expect(ports.fileSharePort.share(file)).resolves.toBeUndefined();
   });
+
+  it('MockQueueRepository exposes status, my-entry and leave (full contract surface)', async () => {
+    const ports = composePorts(mockConfig, fixedClock);
+    const status = await ports.queueRepository.getStatus('evt-1');
+    expect(status.eventId).toBe('evt-1');
+    expect(status.saleState).toBe('OPEN');
+    expect(status.nextPollAfterMs).toBeGreaterThan(0);
+    const mine = await ports.queueRepository.getMyEntry('evt-1');
+    expect(mine.status).toBe('WAITING');
+    await expect(ports.queueRepository.leave('entry-1')).resolves.toBeUndefined();
+  });
+
+  it('MockPaymentRepository exposes attempt, status and page-token (full contract surface)', async () => {
+    const ports = composePorts(mockConfig, fixedClock);
+    const attempt = await ports.paymentRepository.createAttempt('bk-1', 'QRIS', 'idem-1');
+    expect(attempt.status).toBe('PENDING');
+    expect(attempt.method).toBe('QRIS');
+    const status = await ports.paymentRepository.getStatus('bk-1');
+    expect(status.bookingStatus).toBe('PAYMENT_PENDING');
+    expect(status.serverTime).toBe(new Date(fixedClock.now()).toISOString());
+    const token = await ports.paymentRepository.createPageToken('bk-1');
+    expect(token.pageToken).toBeTruthy();
+    expect(token.pageUrl).toContain('http');
+  });
 });
