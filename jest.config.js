@@ -16,7 +16,7 @@
 //   resolves (or hoist RN). See PR description "What is stubbed / deferred".
 //
 // Transform: babel-preset-expo (hoisted at root) handles TS/JSX for the Node project.
-const path = require('path');
+const path = require('node:path');
 
 const moduleNameMapper = {
   '^@rbt/domain$': path.join(__dirname, 'packages/domain/src'),

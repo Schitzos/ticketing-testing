@@ -13,7 +13,9 @@
 //
 // Rationale + review date: docs/security/SECURITY-EXCEPTIONS.md
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 // Documented, time-boxed exceptions. Keyed by the advisory's package `name`.
 // Every entry MUST have a matching row in docs/security/SECURITY-EXCEPTIONS.md.
@@ -40,14 +42,20 @@ const ALLOWLIST = new Set([
   "expo-linking",
 ]);
 
+// Resolve the npm CLI from Node's own install dir so the gate never does a
+// PATH lookup for the binary it runs (S4036: no mutable-PATH command resolution).
+const nodeDir = dirname(process.execPath);
+const npmCli =
+  [join(nodeDir, "node_modules/npm/bin/npm-cli.js"),
+   join(nodeDir, "../lib/node_modules/npm/bin/npm-cli.js")].find(existsSync);
+
 let report;
 try {
   // `npm audit --json` exits non-zero when vulns exist; capture stdout anyway.
-  report = execSync("npm audit --json", {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  const common = { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 64 * 1024 * 1024 };
+  report = npmCli
+    ? execFileSync(process.execPath, [npmCli, "audit", "--json"], common)
+    : execFileSync("npm", ["audit", "--json"], { ...common, shell: false });
 } catch (err) {
   report = err.stdout || "";
 }
@@ -69,12 +77,12 @@ for (const v of Object.values(vulns)) {
 
 if (excepted.length) {
   console.log(`audit-gate: ${excepted.length} allowlisted high/critical advisory(ies) (documented §4.5 exception — RBT-006):`);
-  for (const line of excepted.sort()) console.log("  (allowed) " + line);
+  for (const line of excepted.toSorted((a, b) => a.localeCompare(b))) console.log("  (allowed) " + line);
 }
 
 if (blocking.length) {
   console.error(`\naudit-gate: FAIL — ${blocking.length} high/critical advisory(ies) NOT on the allowlist:`);
-  for (const line of blocking.sort()) console.error("  " + line);
+  for (const line of blocking.toSorted((a, b) => a.localeCompare(b))) console.error("  " + line);
   console.error("\nFix the dependency, or add a documented exception to docs/security/SECURITY-EXCEPTIONS.md + the allowlist.");
   process.exit(1);
 }
