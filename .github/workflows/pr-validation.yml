@@ -80,9 +80,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      # PIPELINE.md §4.5 — fail on high/critical PRODUCTION dependency vulnerabilities.
-      - name: npm audit (production deps, level=high)
-        run: npm audit --omit=dev --audit-level=high
+      # PIPELINE.md §4.5 — fail on high/critical PRODUCTION dependency vulnerabilities,
+      # EXCEPT a documented allowlist of Expo SDK 52 build/CLI-toolchain advisories that
+      # cannot be cleared without a breaking Expo major bump (tracked: RBT-006).
+      # The one controllable advisory (decode-uri-component) is fixed via package.json `overrides`.
+      # Allowlist + rationale: docs/security/SECURITY-EXCEPTIONS.md
+      - name: npm audit (production deps, level=high, documented exceptions)
+        run: node scripts/ci/audit-gate.mjs
 
   sonarcloud:
     name: SonarCloud quality gate
